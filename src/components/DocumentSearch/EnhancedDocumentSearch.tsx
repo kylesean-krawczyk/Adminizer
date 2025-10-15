@@ -205,14 +205,14 @@ export const EnhancedDocumentSearch = ({
         {Object.keys(activeFilters).length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="text-sm text-gray-600 self-center">Active filters:</span>
-            {Object.entries(activeFilters).map(([key, value]) => (
-              value && (
+            {Object.entries(activeFilters).map(([key, value]) =>
+              value ? (
                 <span
                   key={key}
                   className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
                 >
                   <span className="capitalize">{key}:</span>
-                  <span className="font-medium">{Array.isArray(value) ? value.join(', ') : value}</span>
+                  <span className="font-medium">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
                   <button
                     onClick={() => clearFilter(key as keyof SearchFilters)}
                     className="ml-1 hover:text-blue-900"
@@ -220,8 +220,8 @@ export const EnhancedDocumentSearch = ({
                     <X className="h-3 w-3" />
                   </button>
                 </span>
-              )
-            ))}
+              ) : null
+            )}
             <button
               onClick={clearAllFilters}
               className="text-sm text-red-600 hover:text-red-700 underline"

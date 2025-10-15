@@ -4,10 +4,6 @@ import { DataStorage } from '../utils/dataStorage'
 import { isDemoMode } from '../lib/demo'
 
 export class CustomerDataSyncService {
-  /**
-   * Synchronizes customer data from documents uploaded to the main document center
-   * with the sales analytics platform
-   */
   static async syncCustomerDataFromDocuments(): Promise<{
     success: boolean
     processedCount: number
@@ -16,7 +12,6 @@ export class CustomerDataSyncService {
   }> {
     try {
       if (isDemoMode) {
-        // In demo mode, simulate sync but don't actually process
         return {
           success: true,
           processedCount: 0,
@@ -24,12 +19,11 @@ export class CustomerDataSyncService {
         }
       }
 
-      // Query for unprocessed customer data documents
       const { data: documents, error: queryError } = await supabase
         .from('documents')
         .select('*')
         .eq('category', 'Customer Data')
-        .eq('is_donor_data_processed', false) // Note: keeping original column name for DB compatibility
+        .eq('is_donor_data_processed', false)
         .order('created_at', { ascending: true })
 
       if (queryError) {
@@ -47,10 +41,8 @@ export class CustomerDataSyncService {
       let totalCustomersAdded = 0
       const processedDocumentIds: string[] = []
 
-      // Process each unprocessed document
       for (const document of documents) {
         try {
-          // Download and read the document content
           const { data: fileData, error: downloadError } = await supabase.storage
             .from('documents')
             .download(document.file_path)
@@ -60,24 +52,20 @@ export class CustomerDataSyncService {
             continue
           }
 
-          // Convert blob to file for DataParser
           const file = new File([fileData], document.name, { type: 'text/csv' })
-          
-          // Parse the CSV data
+
           const parseResult = await DataParser.parseFile(file)
-          
+
           if (parseResult.success && parseResult.data) {
-            // Merge with existing customer data in local storage
             const existingData = DataStorage.loadData()
             const mergedData = DataStorage.mergeNewData(existingData, parseResult.data)
-            
-            // Save the merged data
+
             DataStorage.saveData(mergedData)
             DataStorage.saveUploadHistory(parseResult.data.length, mergedData.length)
-            
+
             totalCustomersAdded += parseResult.data.length
             processedDocumentIds.push(document.id)
-            
+
             console.log(`Successfully processed ${document.name}: ${parseResult.data.length} customers added`)
           } else {
             console.error(`Failed to parse document ${document.name}:`, parseResult.error)
@@ -87,16 +75,14 @@ export class CustomerDataSyncService {
         }
       }
 
-      // Mark processed documents as processed
       if (processedDocumentIds.length > 0) {
         const { error: updateError } = await supabase
           .from('documents')
-          .update({ is_donor_data_processed: true }) // Note: keeping original column name for DB compatibility
+          .update({ is_donor_data_processed: true })
           .in('id', processedDocumentIds)
 
         if (updateError) {
           console.error('Failed to mark documents as processed:', updateError)
-          // Don't throw here as the data was still processed successfully
         }
       }
 
@@ -116,9 +102,6 @@ export class CustomerDataSyncService {
     }
   }
 
-  /**
-   * Check if there are any unprocessed customer data documents
-   */
   static async hasUnprocessedCustomerData(): Promise<boolean> {
     try {
       if (isDemoMode) {
@@ -129,7 +112,7 @@ export class CustomerDataSyncService {
         .from('documents')
         .select('id')
         .eq('category', 'Customer Data')
-        .eq('is_donor_data_processed', false) // Note: keeping original column name for DB compatibility
+        .eq('is_donor_data_processed', false)
         .limit(1)
 
       if (error) {
@@ -144,9 +127,6 @@ export class CustomerDataSyncService {
     }
   }
 
-  /**
-   * Get count of unprocessed customer data documents
-   */
   static async getUnprocessedCount(): Promise<number> {
     try {
       if (isDemoMode) {
@@ -157,7 +137,7 @@ export class CustomerDataSyncService {
         .from('documents')
         .select('*', { count: 'exact', head: true })
         .eq('category', 'Customer Data')
-        .eq('is_donor_data_processed', false) // Note: keeping original column name for DB compatibility
+        .eq('is_donor_data_processed', false)
 
       if (error) {
         console.error('Error getting unprocessed count:', error)

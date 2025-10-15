@@ -4,10 +4,6 @@ import { DataStorage } from '../utils/dataStorage'
 import { isDemoMode } from '../lib/demo'
 
 export class DonorDataSyncService {
-  /**
-   * Synchronizes donor data from documents uploaded to the main document center
-   * with the donor analytics platform
-   */
   static async syncDonorDataFromDocuments(): Promise<{
     success: boolean
     processedCount: number
@@ -16,7 +12,6 @@ export class DonorDataSyncService {
   }> {
     try {
       if (isDemoMode) {
-        // In demo mode, simulate sync but don't actually process
         return {
           success: true,
           processedCount: 0,
@@ -24,7 +19,6 @@ export class DonorDataSyncService {
         }
       }
 
-      // Query for unprocessed donor data documents
       const { data: documents, error: queryError } = await supabase
         .from('documents')
         .select('*')
@@ -47,10 +41,8 @@ export class DonorDataSyncService {
       let totalDonorsAdded = 0
       const processedDocumentIds: string[] = []
 
-      // Process each unprocessed document
       for (const document of documents) {
         try {
-          // Download and read the document content
           const { data: fileData, error: downloadError } = await supabase.storage
             .from('documents')
             .download(document.file_path)
@@ -60,24 +52,20 @@ export class DonorDataSyncService {
             continue
           }
 
-          // Convert blob to file for DataParser
           const file = new File([fileData], document.name, { type: 'text/csv' })
-          
-          // Parse the CSV data
+
           const parseResult = await DataParser.parseFile(file)
-          
+
           if (parseResult.success && parseResult.data) {
-            // Merge with existing donor data in local storage
             const existingData = DataStorage.loadData()
             const mergedData = DataStorage.mergeNewData(existingData, parseResult.data)
-            
-            // Save the merged data
+
             DataStorage.saveData(mergedData)
             DataStorage.saveUploadHistory(parseResult.data.length, mergedData.length)
-            
+
             totalDonorsAdded += parseResult.data.length
             processedDocumentIds.push(document.id)
-            
+
             console.log(`Successfully processed ${document.name}: ${parseResult.data.length} donors added`)
           } else {
             console.error(`Failed to parse document ${document.name}:`, parseResult.error)
@@ -87,7 +75,6 @@ export class DonorDataSyncService {
         }
       }
 
-      // Mark processed documents as processed
       if (processedDocumentIds.length > 0) {
         const { error: updateError } = await supabase
           .from('documents')
@@ -96,7 +83,6 @@ export class DonorDataSyncService {
 
         if (updateError) {
           console.error('Failed to mark documents as processed:', updateError)
-          // Don't throw here as the data was still processed successfully
         }
       }
 
@@ -116,9 +102,6 @@ export class DonorDataSyncService {
     }
   }
 
-  /**
-   * Check if there are any unprocessed donor data documents
-   */
   static async hasUnprocessedDonorData(): Promise<boolean> {
     try {
       if (isDemoMode) {
@@ -144,9 +127,6 @@ export class DonorDataSyncService {
     }
   }
 
-  /**
-   * Get count of unprocessed donor data documents
-   */
   static async getUnprocessedCount(): Promise<number> {
     try {
       if (isDemoMode) {

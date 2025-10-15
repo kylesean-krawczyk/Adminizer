@@ -31,7 +31,7 @@ export default function ToolTestingPanel({ tool, onClose }: ToolTestingPanelProp
       setParameters(params);
 
       const defaultValues: Record<string, any> = {};
-      params.forEach(param => {
+      params.forEach((param: ToolParameter) => {
         if (param.default_value) {
           defaultValues[param.name] = param.default_value;
         } else if (param.type === 'boolean') {

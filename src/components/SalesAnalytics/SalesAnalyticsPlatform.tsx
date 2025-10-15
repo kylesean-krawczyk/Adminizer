@@ -8,7 +8,7 @@ import { AllCustomersDirectory } from './AllCustomersDirectory';
 import { DataStorage } from '../../utils/dataStorage';
 import { SalesAnalytics } from '../../utils/analytics';
 import { CustomerData, SalesAnalysisResult } from '../../types';
-import { CustomerDataSyncService } from '../../Services/customerDataSyncService';
+import { CustomerDataSyncService } from '../../services/customerDataSyncService';
 import { BarChart3, Shield, TrendingUp, Upload, Database, Users } from 'lucide-react';
 
 function SalesAnalyticsPlatform() {

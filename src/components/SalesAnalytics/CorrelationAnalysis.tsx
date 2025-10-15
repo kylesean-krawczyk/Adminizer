@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
 import { MonthlySalesTrend, EconomicIndicator } from '../../types';
-import { EconomicDataService } from '../../Services/economicDataService';
+import { EconomicDataService } from '../../services/economicDataService';
 import { formatCurrency, formatNumber } from '../../utils/helpers';
 
 interface CorrelationAnalysisProps {

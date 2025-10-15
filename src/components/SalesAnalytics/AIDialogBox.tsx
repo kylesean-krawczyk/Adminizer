@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Bot, User, Loader, Brain, Minimize2, Maximize2 } from 'lucide-react';
-import { AIService } from '../../Services/aiService';
+import { AIService } from '../../services/aiService';
 import { CustomerData } from '../../types';
 
 interface AIDialogBoxProps {

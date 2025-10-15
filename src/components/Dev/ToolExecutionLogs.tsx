@@ -37,7 +37,7 @@ export default function ToolExecutionLogs() {
     try {
       const allTools = await ToolRegistryService.fetchAllTools();
       const toolsMap: Record<string, ToolDefinition> = {};
-      allTools.forEach(tool => {
+      allTools.forEach((tool: ToolDefinition) => {
         toolsMap[tool.id] = tool;
       });
       setTools(toolsMap);

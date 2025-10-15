@@ -29,9 +29,8 @@ export interface ExternalDataSource {
 export class AIService {
   static async analyzeWithAI(request: AIAnalysisRequest): Promise<AIAnalysisResponse> {
     try {
-      // Call Netlify Function directly
       const aiResponse = await this.callNetlifyFunction(request);
-      
+
       return {
         content: aiResponse.content,
         insights: aiResponse.insights || [],
@@ -72,7 +71,6 @@ export class AIService {
     }
   }
 
-  // Method to test AI service connection
   static async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
       const anthropicKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -82,7 +80,7 @@ export class AIService {
           message: 'Anthropic Claude API key found. Using Netlify function for AI analysis.'
         };
       }
-      
+
       const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
       if (openaiKey) {
         return {
@@ -90,7 +88,7 @@ export class AIService {
           message: 'OpenAI API key found. Using Netlify function for AI analysis.'
         };
       }
-      
+
       return {
         success: false,
         message: 'No AI service configured. Please add VITE_ANTHROPIC_API_KEY or VITE_OPENAI_API_KEY to your environment variables.'

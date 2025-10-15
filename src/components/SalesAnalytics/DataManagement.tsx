@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { saveAs } from 'file-saver';
 import { Download, Trash2, Upload, Calendar, Database } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
-import { CustomerDataSyncService } from '../../Services/customerDataSyncService';
+import { CustomerDataSyncService } from '../../services/customerDataSyncService';
 import { CustomerData } from '../../types';
 import { formatNumber } from '../../utils/helpers';
 import { formatDate } from '../../utils/dateUtils';

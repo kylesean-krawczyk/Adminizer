@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, BarChart3, Activity, RefreshCw, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { EconomicDataService } from '../../Services/economicDataService';
+import { EconomicDataService } from '../../services/economicDataService';
 import { EconomicIndicator } from '../../types';
 import { formatNumber, formatPercentage } from '../../utils/helpers';
 

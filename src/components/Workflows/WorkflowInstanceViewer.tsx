@@ -48,7 +48,7 @@ export default function WorkflowInstanceViewer() {
         setSteps(definitionData.steps);
 
         if (instanceData.current_step_id) {
-          const current = definitionData.steps.find(s => s.id === instanceData.current_step_id);
+          const current = definitionData.steps.find((s: WorkflowStep) => s.id === instanceData.current_step_id);
           setCurrentStep(current || null);
         }
       }

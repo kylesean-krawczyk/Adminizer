@@ -3,24 +3,21 @@ import { EconomicIndicator, EconomicDataPoint } from '../types';
 export class EconomicDataService {
   private static readonly FRED_API_BASE = 'https://api.stlouisfed.org/fred';
   private static readonly BEA_API_BASE = 'https://apps.bea.gov/api/data';
-  
-  // Get API keys from environment variables
+
   private static readonly FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY;
   private static readonly BEA_API_KEY = import.meta.env.VITE_BEA_API_KEY;
 
-  // FRED Series IDs for key economic indicators
   private static readonly FRED_SERIES = {
-    CONSUMER_CONFIDENCE: 'UMCSENT', // University of Michigan Consumer Sentiment
-    SP500: 'SP500', // S&P 500 Stock Price Index
-    UNEMPLOYMENT: 'UNRATE', // Unemployment Rate
-    GDP_GROWTH: 'A191RL1Q225SBEA', // Real GDP Growth Rate
-    INFLATION: 'CPIAUCSL', // Consumer Price Index
-    FEDERAL_FUNDS_RATE: 'FEDFUNDS', // Federal Funds Rate
-    HOUSING_STARTS: 'HOUST', // Housing Starts
-    RETAIL_SALES: 'RSAFS' // Retail Sales
+    CONSUMER_CONFIDENCE: 'UMCSENT',
+    SP500: 'SP500',
+    UNEMPLOYMENT: 'UNRATE',
+    GDP_GROWTH: 'A191RL1Q225SBEA',
+    INFLATION: 'CPIAUCSL',
+    FEDERAL_FUNDS_RATE: 'FEDFUNDS',
+    HOUSING_STARTS: 'HOUST',
+    RETAIL_SALES: 'RSAFS'
   };
 
-  // Add this for debugging
   static debugApiKey() {
     console.log('FRED_API_KEY:', this.FRED_API_KEY ? 'Loaded' : 'Not Loaded');
     if (!this.FRED_API_KEY) {
@@ -38,13 +35,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/series/observations?series_id=${this.FRED_SERIES.CONSUMER_CONFIDENCE}&api_key=${this.FRED_API_KEY}&file_type=json&limit=24&sort_order=desc`
       );
-      
+
       if (!response.ok) {
         throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         throw new Error(`FRED API error: ${data.error_message}`);
       }
@@ -70,13 +67,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/series/observations?series_id=${this.FRED_SERIES.SP500}&api_key=${this.FRED_API_KEY}&file_type=json&limit=24&sort_order=desc`
       );
-      
+
       if (!response.ok) {
         throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         throw new Error(`FRED API error: ${data.error_message}`);
       }
@@ -102,13 +99,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/series/observations?series_id=${this.FRED_SERIES.UNEMPLOYMENT}&api_key=${this.FRED_API_KEY}&file_type=json&limit=24&sort_order=desc`
       );
-      
+
       if (!response.ok) {
         throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         throw new Error(`FRED API error: ${data.error_message}`);
       }
@@ -134,13 +131,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/series/observations?series_id=${this.FRED_SERIES.GDP_GROWTH}&api_key=${this.FRED_API_KEY}&file_type=json&limit=12&sort_order=desc`
       );
-      
+
       if (!response.ok) {
         throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         throw new Error(`FRED API error: ${data.error_message}`);
       }
@@ -166,25 +163,23 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/series/observations?series_id=${this.FRED_SERIES.INFLATION}&api_key=${this.FRED_API_KEY}&file_type=json&limit=24&sort_order=desc`
       );
-      
+
       if (!response.ok) {
         throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         throw new Error(`FRED API error: ${data.error_message}`);
       }
 
-      // Calculate year-over-year inflation rate
       const observations = data.observations?.map((obs: any) => ({
         date: new Date(obs.date),
         value: parseFloat(obs.value) || 0,
         indicator: 'Inflation Rate'
       })).reverse() || [];
 
-      // Calculate YoY inflation rate
       return observations.map((obs: any, index: number) => {
         if (index >= 12) {
           const currentValue = obs.value;
@@ -196,7 +191,7 @@ export class EconomicDataService {
           };
         }
         return obs;
-      }).slice(12); // Remove first 12 months where we can't calculate YoY
+      }).slice(12);
     } catch (error) {
       console.warn('Failed to fetch inflation data:', error);
       return this.getMockInflation();
@@ -213,13 +208,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/series/observations?series_id=${this.FRED_SERIES.FEDERAL_FUNDS_RATE}&api_key=${this.FRED_API_KEY}&file_type=json&limit=24&sort_order=desc`
       );
-      
+
       if (!response.ok) {
         throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         throw new Error(`FRED API error: ${data.error_message}`);
       }
@@ -245,13 +240,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.BEA_API_BASE}?&UserID=${this.BEA_API_KEY}&method=GetData&datasetname=NIPA&TableName=T20100&Frequency=Q&Year=2023,2024&ResultFormat=json`
       );
-      
+
       if (!response.ok) {
         throw new Error(`BEA API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.BEAAPI?.Results?.[0]?.Data) {
         const personalIncomeData = data.BEAAPI.Results[0].Data
           .filter((item: any) => item.LineDescription === 'Personal income')
@@ -262,9 +257,8 @@ export class EconomicDataService {
           }))
           .sort((a: EconomicDataPoint, b: EconomicDataPoint) => a.date.getTime() - b.date.getTime());
 
-        // Calculate year-over-year growth rates
         return personalIncomeData.map((item: EconomicDataPoint, index: number) => {
-          if (index >= 4) { // Need 4 quarters for YoY calculation
+          if (index >= 4) {
             const currentValue = item.value;
             const yearAgoValue = personalIncomeData[index - 4].value;
             const growthRate = yearAgoValue > 0 ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 : 0;
@@ -274,9 +268,9 @@ export class EconomicDataService {
             };
           }
           return item;
-        }).slice(4); // Remove first 4 quarters where we can't calculate YoY
+        }).slice(4);
       }
-      
+
       return this.getMockPersonalIncome();
     } catch (error) {
       console.warn('Failed to fetch Personal Income data:', error);
@@ -294,13 +288,13 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.BEA_API_BASE}?&UserID=${this.BEA_API_KEY}&method=GetData&datasetname=NIPA&TableName=T11200&Frequency=Q&Year=2023,2024&ResultFormat=json`
       );
-      
+
       if (!response.ok) {
         throw new Error(`BEA API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.BEAAPI?.Results?.[0]?.Data) {
         const corporateProfitsData = data.BEAAPI.Results[0].Data
           .filter((item: any) => item.LineDescription === 'Corporate profits with inventory valuation and capital consumption adjustments')
@@ -311,9 +305,8 @@ export class EconomicDataService {
           }))
           .sort((a: EconomicDataPoint, b: EconomicDataPoint) => a.date.getTime() - b.date.getTime());
 
-        // Calculate year-over-year growth rates
         return corporateProfitsData.map((item: EconomicDataPoint, index: number) => {
-          if (index >= 4) { // Need 4 quarters for YoY calculation
+          if (index >= 4) {
             const currentValue = item.value;
             const yearAgoValue = corporateProfitsData[index - 4].value;
             const growthRate = yearAgoValue > 0 ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 : 0;
@@ -323,9 +316,9 @@ export class EconomicDataService {
             };
           }
           return item;
-        }).slice(4); // Remove first 4 quarters where we can't calculate YoY
+        }).slice(4);
       }
-      
+
       return this.getMockCorporateProfits();
     } catch (error) {
       console.warn('Failed to fetch Corporate Profits data:', error);
@@ -335,8 +328,6 @@ export class EconomicDataService {
 
   static async getAllIndicators(): Promise<EconomicIndicator[]> {
     try {
-      // Use mock data due to CORS restrictions in browser environment
-      // In production, these API calls would be made from a backend server
       const [cci, sp500, unemployment, gdp, inflation, federalFunds, personalIncome, corporateProfits] = await Promise.all([
         Promise.resolve(this.getMockConsumerConfidence()),
         Promise.resolve(this.getMockSP500()),
@@ -428,10 +419,9 @@ export class EconomicDataService {
     }
   }
 
-  // Test FRED API connection
   static async testFredConnection(): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-      this.debugApiKey(); // Call debug here
+      this.debugApiKey();
       if (!this.FRED_API_KEY) {
         return {
           success: false,
@@ -442,16 +432,16 @@ export class EconomicDataService {
       const response = await fetch(
         `${this.FRED_API_BASE}/releases?api_key=${this.FRED_API_KEY}&file_type=json&limit=1`
       );
-      
+
       if (!response.ok) {
         return {
           success: false,
           message: `FRED API connection failed: ${response.status} ${response.statusText}`
         };
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error_code) {
         return {
           success: false,
@@ -474,23 +464,22 @@ export class EconomicDataService {
 
   private static calculateTrend(data: EconomicDataPoint[]): 'up' | 'down' | 'stable' {
     if (data.length < 2) return 'stable';
-    
+
     const recent = data.slice(-3);
     const older = data.slice(-6, -3);
-    
+
     if (recent.length === 0 || older.length === 0) return 'stable';
-    
+
     const recentAvg = recent.reduce((sum, d) => sum + d.value, 0) / recent.length;
     const olderAvg = older.reduce((sum, d) => sum + d.value, 0) / older.length;
-    
+
     const change = (recentAvg - olderAvg) / Math.abs(olderAvg);
-    
+
     if (change > 0.02) return 'up';
     if (change < -0.02) return 'down';
     return 'stable';
   }
 
-  // Mock data methods for fallback
   private static getMockConsumerConfidence(): EconomicDataPoint[] {
     const baseValue = 95;
     return Array.from({ length: 24 }, (_, i) => ({

@@ -45,7 +45,7 @@ export function useRequestNotifications() {
         low: 0
       };
 
-      pendingRequests.forEach(request => {
+      pendingRequests.forEach((request: { priority: AccessRequestPriority }) => {
         priorityCounts[request.priority]++;
       });
 
