@@ -106,14 +106,14 @@ export const EnhancedDocumentSearch = ({
   };
 
   const handleFilterChange = (filterType: keyof SearchFilters, value: any) => {
-    setActiveFilters(prev => ({
+    setActiveFilters((prev: SearchFilters) => ({
       ...prev,
       [filterType]: value
     }));
   };
 
   const clearFilter = (filterType: keyof SearchFilters) => {
-    setActiveFilters(prev => {
+    setActiveFilters((prev: SearchFilters) => {
       const updated = { ...prev };
       delete updated[filterType];
       return updated;
