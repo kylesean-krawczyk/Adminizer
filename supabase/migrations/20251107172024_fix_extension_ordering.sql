@@ -1,11 +1,7 @@
 /*
-  # User Management System - Fixed Extension Ordering
+  # User Management System
 
-  1. Extensions
-    - Enable pgcrypto extension first (for gen_random_uuid and gen_random_bytes)
-    - Enable uuid-ossp extension (for UUID support)
-
-  2. New Tables
+  1. New Tables
     - `organizations`
       - `id` (uuid, primary key)
       - `name` (text)
@@ -37,20 +33,18 @@
       - `accepted_at` (timestamp)
       - `created_at` (timestamp)
 
-  3. Security
+  2. Security
     - Enable RLS on all tables
     - Add policies for role-based access control
     - Ensure proper data isolation by organization
 
-  4. Functions
+  3. Functions
     - Function to create organization and first admin
     - Function to invite users
     - Function to accept invitations
-*/
 
--- CRITICAL: Enable extensions FIRST before any table creation
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+  Note: Extensions are now enabled in migration 20250618160000_enable_extensions.sql
+*/
 
 -- Create organizations table
 CREATE TABLE IF NOT EXISTS organizations (
