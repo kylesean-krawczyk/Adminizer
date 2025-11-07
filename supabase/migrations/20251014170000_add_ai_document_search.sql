@@ -290,6 +290,7 @@ CREATE POLICY "Users can delete document relationships"
   );
 
 -- Update trigger for document_metadata
+DROP TRIGGER IF EXISTS update_document_metadata_updated_at ON document_metadata;
 CREATE TRIGGER update_document_metadata_updated_at
   BEFORE UPDATE ON document_metadata
   FOR EACH ROW

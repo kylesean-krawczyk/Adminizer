@@ -165,6 +165,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_ai_tool_user_config_updated_at ON ai_tool_user_config;
 CREATE TRIGGER update_ai_tool_user_config_updated_at
   BEFORE UPDATE ON ai_tool_user_config
   FOR EACH ROW
@@ -179,6 +180,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_ai_tool_organization_config_updated_at ON ai_tool_organization_config;
 CREATE TRIGGER update_ai_tool_organization_config_updated_at
   BEFORE UPDATE ON ai_tool_organization_config
   FOR EACH ROW
