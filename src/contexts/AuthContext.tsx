@@ -38,11 +38,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('organization_id')
           .eq('id', session.user.id)
           .maybeSingle();
+
+        if (profileError) {
+          console.error('Error loading user profile:', profileError);
+          setUser(session.user);
+          return;
+        }
 
         setUser({
           ...session.user,
@@ -75,18 +81,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      
+
       if (error) {
         console.error('Sign in error:', error)
-        throw error
+        throw new Error(error.message || 'Sign in failed')
       }
+
+      console.log('Sign in successful:', data.user?.email)
     } catch (error) {
       console.error('Sign in failed:', error)
-      throw error
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('An unexpected error occurred during sign in')
     }
   }
 
