@@ -45,7 +45,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle();
 
         if (profileError) {
-          console.error('Error loading user profile:', profileError);
+          console.error('Error loading user profile:', {
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint
+          });
           setUser(session.user);
           return;
         }
@@ -55,7 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           organizationId: profile?.organization_id || null
         });
       } catch (error) {
-        console.error('Error loading user profile:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error loading user profile:', errorMsg, error);
         setUser(session.user);
       }
     };
@@ -87,13 +93,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (error) {
-        console.error('Sign in error:', error)
+        console.error('Sign in error:', {
+          code: error.code,
+          message: error.message,
+          status: error.status
+        })
         throw new Error(error.message || 'Sign in failed')
       }
 
       console.log('Sign in successful:', data.user?.email)
     } catch (error) {
-      console.error('Sign in failed:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Sign in failed:', errorMsg)
       if (error instanceof Error) {
         throw error
       }

@@ -81,22 +81,32 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       let userVertical = (userProfile.active_vertical as VerticalId) || 'church'
 
       if (userProfile.organization_id) {
-        const { data: organization } = await supabase
-          .from('organizations')
-          .select('enabled_verticals, vertical')
-          .eq('id', userProfile.organization_id)
-          .maybeSingle()
+        try {
+          const { data: organization, error: orgError } = await supabase
+            .from('organizations')
+            .select('enabled_verticals, vertical')
+            .eq('id', userProfile.organization_id)
+            .maybeSingle()
 
-        if (organization?.enabled_verticals) {
-          const enabledVerticals = organization.enabled_verticals as VerticalId[]
-          if (!enabledVerticals.includes(userVertical)) {
-            userVertical = enabledVerticals[0] || 'church'
+          if (orgError) {
+            console.error('Error fetching organization:', orgError)
+          } else if (organization?.enabled_verticals && Array.isArray(organization.enabled_verticals)) {
+            const enabledVerticals = organization.enabled_verticals as VerticalId[]
+            if (enabledVerticals.length > 0 && !enabledVerticals.includes(userVertical)) {
+              userVertical = enabledVerticals[0] || 'church'
 
-            await supabase
-              .from('user_profiles')
-              .update({ active_vertical: userVertical })
-              .eq('id', user.id)
+              const { error: updateError } = await supabase
+                .from('user_profiles')
+                .update({ active_vertical: userVertical })
+                .eq('id', user.id)
+
+              if (updateError) {
+                console.error('Error updating user vertical:', updateError)
+              }
+            }
           }
+        } catch (orgErr) {
+          console.error('Error querying organization:', orgErr)
         }
       }
 
@@ -105,8 +115,9 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       setVertical(config)
       setLoading(false)
     } catch (err) {
-      console.error('Error loading vertical configuration:', err)
-      setError('Failed to load configuration')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      console.error('Error loading vertical configuration:', errorMessage, err)
+      setError(`Failed to load configuration: ${errorMessage}`)
       const fallbackConfig = getVerticalConfig('church')
       setVerticalId('church')
       setVertical(fallbackConfig)
