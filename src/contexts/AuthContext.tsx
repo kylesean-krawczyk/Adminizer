@@ -38,6 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
+        // First, set the basic user immediately to allow the app to continue
+        setUser(session.user);
+
+        // Then try to load profile details in the background
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('organization_id')
@@ -49,20 +53,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             code: profileError.code,
             message: profileError.message,
             details: profileError.details,
-            hint: profileError.hint
+            hint: profileError.hint,
+            userId: session.user.id
           });
-          setUser(session.user);
+          // User is already set, so just log the error
           return;
         }
 
-        setUser({
-          ...session.user,
-          organizationId: profile?.organization_id || null
-        });
+        // Update user with organization info if available
+        if (profile) {
+          setUser({
+            ...session.user,
+            organizationId: profile.organization_id || null
+          });
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Error loading user profile:', errorMsg, error);
-        setUser(session.user);
+        console.error('Unexpected error loading user profile:', {
+          error: errorMsg,
+          userId: session.user.id,
+          fullError: error
+        });
+        // User is already set, so just log the error
       }
     };
 
@@ -96,9 +108,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Sign in error:', {
           code: error.code,
           message: error.message,
-          status: error.status
+          status: error.status,
+          name: error.name
         })
-        throw new Error(error.message || 'Sign in failed')
+        // Provide user-friendly error messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password')
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email to confirm your account')
+        } else {
+          throw new Error(error.message || 'Sign in failed')
+        }
       }
 
       console.log('Sign in successful:', data.user?.email)

@@ -7,6 +7,7 @@ export interface UserProfile {
   role: 'master_admin' | 'admin' | 'user'
   organization_id: string | null
   is_active: boolean
+  active_vertical: 'church' | 'business' | 'estate'
   invited_by: string | null
   invited_at: string | null
   last_login: string | null
@@ -47,6 +48,7 @@ const demoUserProfile: UserProfile = {
   role: 'master_admin',
   organization_id: 'demo-org-1',
   is_active: true,
+  active_vertical: 'church',
   invited_by: null,
   invited_at: null,
   last_login: new Date().toISOString(),
@@ -71,6 +73,7 @@ const demoUsers: UserProfile[] = [
     role: 'user',
     organization_id: 'demo-org-1',
     is_active: true,
+    active_vertical: 'church',
     invited_by: 'demo-admin-id',
     invited_at: '2024-01-02T00:00:00Z',
     last_login: '2024-01-15T10:00:00Z',
@@ -84,6 +87,7 @@ const demoUsers: UserProfile[] = [
     role: 'admin',
     organization_id: 'demo-org-1',
     is_active: true,
+    active_vertical: 'business',
     invited_by: 'demo-admin-id',
     invited_at: '2024-01-03T00:00:00Z',
     last_login: '2024-01-14T15:30:00Z',

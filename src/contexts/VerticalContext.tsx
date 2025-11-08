@@ -89,7 +89,12 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
             .maybeSingle()
 
           if (orgError) {
-            console.error('Error fetching organization:', orgError)
+            console.warn('Could not load organization settings:', {
+              code: orgError.code,
+              message: orgError.message,
+              orgId: userProfile.organization_id
+            })
+            // Continue with user's active vertical even if org settings can't be loaded
           } else if (organization?.enabled_verticals && Array.isArray(organization.enabled_verticals)) {
             const enabledVerticals = organization.enabled_verticals as VerticalId[]
             if (enabledVerticals.length > 0 && !enabledVerticals.includes(userVertical)) {
@@ -101,12 +106,19 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
                 .eq('id', user.id)
 
               if (updateError) {
-                console.error('Error updating user vertical:', updateError)
+                console.warn('Could not update user vertical preference:', {
+                  code: updateError.code,
+                  message: updateError.message
+                })
               }
             }
           }
         } catch (orgErr) {
-          console.error('Error querying organization:', orgErr)
+          console.warn('Unexpected error loading organization:', {
+            error: orgErr instanceof Error ? orgErr.message : 'Unknown error',
+            orgId: userProfile.organization_id
+          })
+          // Continue with default vertical
         }
       }
 

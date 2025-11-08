@@ -1,4 +1,4 @@
-import { FileText, Clock, AlertTriangle, Users, Settings, Building2, Calculator, TrendingUp, Cog, Headphones, Megaphone, Monitor, Scale, Package, Briefcase, FlaskConical, CheckCircle, Info, GitBranch } from 'lucide-react'
+import { FileText, Clock, AlertTriangle, Users, Settings, Building2, Calculator, TrendingUp, Cog, Headphones, Megaphone, Monitor, Scale, Package, Briefcase, FlaskConical, CheckCircle, Info, GitBranch, Shield } from 'lucide-react'
 import { useDocuments } from '../hooks'
 import { useUserManagement } from '../hooks'
 import { useDepartmentSettings } from '../hooks/useDepartmentSettings'
@@ -270,6 +270,52 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Admin Role Badge - Show for admins */}
+      {userProfile && userProfile.role === 'master_admin' && (
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Shield className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-lg">Super Administrator Access</h3>
+                <p className="text-purple-100 text-sm">
+                  You have full administrative privileges across all features
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="bg-white/20 px-3 py-1 rounded-full text-white text-sm font-medium">
+                {userProfile.email}
+              </span>
+              <CheckCircle className="h-5 w-5 text-green-300" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {userProfile && userProfile.role === 'admin' && (
+        <div className="bg-blue-600 rounded-lg shadow-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">Administrator Access</h3>
+                <p className="text-blue-100 text-sm">
+                  You have administrative privileges for your organization
+                </p>
+              </div>
+            </div>
+            <span className="bg-white/20 px-3 py-1 rounded-full text-white text-sm font-medium">
+              {userProfile.email}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
@@ -280,9 +326,14 @@ const Dashboard = () => {
                 {organization.name}
               </span>
             )}
+            {userProfile && userProfile.full_name && (
+              <span className="block text-sm text-gray-500 mt-1">
+                Welcome back, {userProfile.full_name}
+              </span>
+            )}
           </p>
         </div>
-        
+
         {/* Version Info */}
         <div className="flex items-center space-x-2 text-sm text-gray-500">
           <Info className="h-4 w-4" />
