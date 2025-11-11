@@ -54,11 +54,11 @@ function App() {
             {/* Protected routes */}
             <Route path="/*" element={
               <AuthGuard>
-                <div className={`min-h-screen bg-gray-50 ${isDemoMode || import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV ? 'pt-10' : ''}`}>
+                <div className={`min-h-screen bg-white ${isDemoMode || import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV ? 'pt-10' : ''}`}>
                   <Navigation />
-                  <div className="flex">
+                  <div className="flex h-screen">
                     <CollapsibleSidebar />
-                    <main className="flex-1 p-8 transition-all duration-300">
+                    <main className="flex-1 overflow-y-auto bg-white p-8 transition-all duration-300">
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/documents" element={<DocumentList />} />

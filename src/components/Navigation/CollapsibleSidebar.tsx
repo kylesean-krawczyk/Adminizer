@@ -100,43 +100,43 @@ const CollapsibleSidebar = () => {
     <div className="flex flex-col h-full">
       {/* Navigation Content */}
       <div className="flex-1 overflow-y-auto py-4">
-        <nav className="space-y-2">
+        <nav className="space-y-1">
           {/* Primary Navigation */}
           {primaryNav.map((item) => {
             if (!hasRoleAccess(item.requiredRole)) return null
             const Icon = item.icon
             return (
-              <div key={item.id} className="px-4">
+              <div key={item.id} className="px-3">
                 <button
                   onClick={() => item.route && handleNavigation(item.route)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
                     item.route && isActive(item.route)
-                      ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                      : 'text-slate-300 hover:text-purple-400 hover:bg-slate-800'
+                      ? 'text-purple-600 bg-purple-50 font-medium'
+                      : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
                   }`}
                   title={!isExpanded ? item.name : undefined}
                 >
-                  {Icon && <Icon className={`h-5 w-5 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-400' : 'text-slate-400'}`} />}
-                  {isExpanded && <span className="font-medium">{item.name}</span>}
+                  {Icon && <Icon className={`h-5 w-5 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
+                  {isExpanded && <span className="text-sm">{item.name}</span>}
                 </button>
               </div>
             )
           })}
 
           {/* Core Business Departments */}
-          <div className="px-4">
+          <div className="px-3 mt-4">
             <button
               onClick={() => isExpanded && toggleSection('departments')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 ${
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
                 location.pathname.startsWith('/department')
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-300 hover:text-purple-400 hover:bg-slate-800'
+                  ? 'text-purple-600 bg-purple-50 font-medium'
+                  : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
               }`}
               title={!isExpanded ? 'Core Departments' : undefined}
             >
-              <div className="flex items-center space-x-3">
-                <Building2 className={`h-5 w-5 flex-shrink-0 ${location.pathname.startsWith('/department') ? 'text-purple-400' : 'text-slate-400'}`} />
-                {isExpanded && <span className="font-medium">Core Departments</span>}
+              <div className="flex items-center gap-3">
+                <Building2 className={`h-5 w-5 flex-shrink-0 ${location.pathname.startsWith('/department') ? 'text-purple-600' : 'text-gray-500'}`} />
+                {isExpanded && <span className="text-sm font-medium">Core Departments</span>}
               </div>
               {isExpanded && (
                 expandedSections.has('departments')
@@ -146,7 +146,7 @@ const CollapsibleSidebar = () => {
             </button>
             
             {isExpanded && expandedSections.has('departments') && (
-              <div className="mt-2 ml-6 space-y-1">
+              <div className="mt-1 ml-4 space-y-1">
                 {coreDepartments.map((dept) => {
                   if (!hasRoleAccess(dept.requiredRole)) return null
                   const DeptIcon = dept.icon
@@ -154,13 +154,13 @@ const CollapsibleSidebar = () => {
                     <button
                       key={dept.id}
                       onClick={() => dept.route && handleNavigation(dept.route)}
-                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                      className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
                         dept.route && isActive(dept.route)
-                          ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                          ? 'text-purple-600 bg-purple-50 font-medium'
+                          : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                       }`}
                     >
-                      {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-400' : 'text-slate-400'}`} />}
+                      {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                       <span className="truncate">{dept.name}</span>
                     </button>
                   )
@@ -171,19 +171,19 @@ const CollapsibleSidebar = () => {
 
           {/* More Departments */}
           {(visibleMoreDepartments.length > 0 || isAdmin) && (
-            <div className="px-4">
+            <div className="px-3 mt-2">
               <button
                 onClick={() => isExpanded && toggleSection('more-departments')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
                   visibleMoreDepartments.some(dept => dept.route && isActive(dept.route))
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-300 hover:text-purple-400 hover:bg-slate-800'
+                    ? 'text-purple-600 bg-purple-50 font-medium'
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
                 title={!isExpanded ? 'More Departments' : undefined}
               >
-                <div className="flex items-center space-x-3">
-                  <Plus className={`h-5 w-5 flex-shrink-0 ${visibleMoreDepartments.some(dept => dept.route && isActive(dept.route)) ? 'text-purple-400' : 'text-slate-400'}`} />
-                  {isExpanded && <span className="font-medium">More Departments</span>}
+                <div className="flex items-center gap-3">
+                  <Plus className={`h-5 w-5 flex-shrink-0 ${visibleMoreDepartments.some(dept => dept.route && isActive(dept.route)) ? 'text-purple-600' : 'text-gray-500'}`} />
+                  {isExpanded && <span className="text-sm font-medium">More Departments</span>}
                 </div>
                 {isExpanded && (
                   expandedSections.has('more-departments')
@@ -193,7 +193,7 @@ const CollapsibleSidebar = () => {
               </button>
               
               {isExpanded && expandedSections.has('more-departments') && (
-                <div className="mt-2 ml-6 space-y-1">
+                <div className="mt-1 ml-4 space-y-1">
                   {visibleMoreDepartments.map((dept) => {
                     if (!hasRoleAccess(dept.requiredRole)) return null
                     const DeptIcon = dept.icon
@@ -201,25 +201,25 @@ const CollapsibleSidebar = () => {
                       <button
                         key={dept.id}
                         onClick={() => dept.route && handleNavigation(dept.route)}
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
                           dept.route && isActive(dept.route)
-                            ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'text-purple-600 bg-purple-50 font-medium'
+                            : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                         }`}
                       >
-                        {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-400' : 'text-slate-400'}`} />}
+                        {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                         <span className="truncate">{dept.name}</span>
                       </button>
                     )
                   })}
-                  
+
                   {/* Department Settings Button (Admin Only) */}
                   {isAdmin && (
                     <button
                       onClick={() => setDepartmentModalOpen(true)}
-                      className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800"
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 text-gray-600 hover:text-purple-600 hover:bg-purple-50"
                     >
-                      <Eye className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                      <Eye className="h-4 w-4 flex-shrink-0 text-gray-500" />
                       <span className="truncate">Manage Departments</span>
                     </button>
                   )}
@@ -229,19 +229,19 @@ const CollapsibleSidebar = () => {
           )}
 
           {/* Operations Center */}
-          <div className="px-4">
+          <div className="px-3 mt-2">
             <button
               onClick={() => isExpanded ? toggleSection('operations') : handleNavigation('/operations')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 ${
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
                 location.pathname.startsWith('/operations')
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-300 hover:text-purple-400 hover:bg-slate-800'
+                  ? 'text-purple-600 bg-purple-50 font-medium'
+                  : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
               }`}
               title={!isExpanded ? 'Operations Center' : undefined}
             >
-              <div className="flex items-center space-x-3">
-                <Settings className={`h-5 w-5 flex-shrink-0 ${location.pathname.startsWith('/operations') ? 'text-purple-400' : 'text-slate-400'}`} />
-                {isExpanded && <span className="font-medium">Operations Center</span>}
+              <div className="flex items-center gap-3">
+                <Settings className={`h-5 w-5 flex-shrink-0 ${location.pathname.startsWith('/operations') ? 'text-purple-600' : 'text-gray-500'}`} />
+                {isExpanded && <span className="text-sm font-medium">Operations Center</span>}
               </div>
               {isExpanded && (
                 expandedSections.has('operations')
@@ -251,7 +251,7 @@ const CollapsibleSidebar = () => {
             </button>
             
             {isExpanded && expandedSections.has('operations') && (
-              <div className="mt-2 ml-6 space-y-1">
+              <div className="mt-1 ml-4 space-y-1">
                 {operationsCategories.map((op) => {
                   if (!hasRoleAccess(op.requiredRole)) return null
                   const OpIcon = op.icon
@@ -259,13 +259,13 @@ const CollapsibleSidebar = () => {
                     <button
                       key={op.id}
                       onClick={() => op.route && handleNavigation(op.route)}
-                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                      className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
                         op.route && isActive(op.route)
-                          ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                          ? 'text-purple-600 bg-purple-50 font-medium'
+                          : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                       }`}
                     >
-                      {OpIcon && <OpIcon className={`h-4 w-4 flex-shrink-0 ${op.route && isActive(op.route) ? 'text-purple-400' : 'text-slate-400'}`} />}
+                      {OpIcon && <OpIcon className={`h-4 w-4 flex-shrink-0 ${op.route && isActive(op.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                       <span className="truncate">{op.name}</span>
                     </button>
                   )
@@ -276,19 +276,19 @@ const CollapsibleSidebar = () => {
 
           {/* Admin Section */}
           {isAdmin && (
-            <div className="px-4">
+            <div className="px-3 mt-2">
               <button
                 onClick={() => isExpanded && toggleSection('admin')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
                   location.pathname === '/users' || location.pathname === '/oauth'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-300 hover:text-purple-400 hover:bg-slate-800'
+                    ? 'text-purple-600 bg-purple-50 font-medium'
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
                 title={!isExpanded ? 'Admin' : undefined}
               >
-                <div className="flex items-center space-x-3">
-                  <Shield className={`h-5 w-5 flex-shrink-0 ${(location.pathname === '/users' || location.pathname === '/oauth') ? 'text-purple-400' : 'text-slate-400'}`} />
-                  {isExpanded && <span className="font-medium">Admin</span>}
+                <div className="flex items-center gap-3">
+                  <Shield className={`h-5 w-5 flex-shrink-0 ${(location.pathname === '/users' || location.pathname === '/oauth') ? 'text-purple-600' : 'text-gray-500'}`} />
+                  {isExpanded && <span className="text-sm font-medium">Admin</span>}
                 </div>
                 {isExpanded && (
                   expandedSections.has('admin')
@@ -298,7 +298,7 @@ const CollapsibleSidebar = () => {
               </button>
               
               {isExpanded && expandedSections.has('admin') && (
-                <div className="mt-2 ml-6 space-y-1">
+                <div className="mt-1 ml-4 space-y-1">
                   {adminItems.map((item) => {
                     if (!hasRoleAccess(item.requiredRole)) return null
                     const ItemIcon = item.icon
@@ -306,13 +306,13 @@ const CollapsibleSidebar = () => {
                       <button
                         key={item.id}
                         onClick={() => item.route && handleNavigation(item.route)}
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
                           item.route && isActive(item.route)
-                            ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'text-purple-600 bg-purple-50 font-medium'
+                            : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                         }`}
                       >
-                        {ItemIcon && <ItemIcon className={`h-4 w-4 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-400' : 'text-slate-400'}`} />}
+                        {ItemIcon && <ItemIcon className={`h-4 w-4 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                         <span className="truncate">{item.name}</span>
                       </button>
                     )
@@ -323,24 +323,24 @@ const CollapsibleSidebar = () => {
                     <>
                       <button
                         onClick={() => handleNavigation('/settings/features')}
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
                           isActive('/settings/features')
-                            ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'text-purple-600 bg-purple-50 font-medium'
+                            : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                         }`}
                       >
-                        <Flag className={`h-4 w-4 flex-shrink-0 ${isActive('/settings/features') ? 'text-purple-400' : 'text-slate-400'}`} />
+                        <Flag className={`h-4 w-4 flex-shrink-0 ${isActive('/settings/features') ? 'text-purple-600' : 'text-gray-500'}`} />
                         <span className="truncate">Feature Flags</span>
                       </button>
                       <button
                         onClick={() => handleNavigation('/settings/vertical')}
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
                           isActive('/settings/vertical')
-                            ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white font-semibold -ml-1'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'text-purple-600 bg-purple-50 font-medium'
+                            : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                         }`}
                       >
-                        <LayoutGrid className={`h-4 w-4 flex-shrink-0 ${isActive('/settings/vertical') ? 'text-purple-400' : 'text-slate-400'}`} />
+                        <LayoutGrid className={`h-4 w-4 flex-shrink-0 ${isActive('/settings/vertical') ? 'text-purple-600' : 'text-gray-500'}`} />
                         <span className="truncate">Vertical Configuration</span>
                       </button>
                     </>
@@ -365,7 +365,7 @@ const CollapsibleSidebar = () => {
       {/* Mobile Hamburger Button */}
       <button
         onClick={toggleMobileOverlay}
-        className="md:hidden fixed top-20 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg"
+        className="md:hidden fixed top-20 left-4 z-50 p-2 bg-white text-gray-600 rounded-lg shadow-lg border border-gray-200"
         aria-label="Open navigation menu"
       >
         <Menu className="h-5 w-5" />
@@ -375,7 +375,7 @@ const CollapsibleSidebar = () => {
       {isMobileOverlay && (
         <div className="md:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/50" onClick={toggleMobileOverlay} />
-          <div className="relative w-80 h-full bg-slate-900 shadow-xl">
+          <div className="relative w-80 h-full bg-white shadow-xl">
             <SidebarContent />
           </div>
         </div>
@@ -383,16 +383,16 @@ const CollapsibleSidebar = () => {
 
       {/* Desktop Sidebar */}
       <div
-        className={`hidden md:flex flex-col bg-slate-900 border-r border-slate-700 transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
           isExpanded ? 'w-64' : 'w-16'
         }`}
-        style={{ height: 'calc(100vh - 4rem)' }} // Account for top navigation height
+        style={{ height: 'calc(100vh - 4rem)' }}
       >
         {/* Toggle Button */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-gray-200">
           <button
             onClick={toggleSidebar}
-            className="p-2 text-slate-300 hover:text-purple-400 hover:bg-slate-800 rounded-lg transition-all duration-200"
+            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200"
             aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             <Menu className="h-5 w-5" />
