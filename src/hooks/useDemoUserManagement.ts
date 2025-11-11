@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createInitialRecoveryState } from '../types/profileErrors'
 
 export interface UserProfile {
   id: string
@@ -117,6 +118,8 @@ export const useDemoUserManagement = () => {
   const [invitations, setInvitations] = useState<UserInvitation[]>(demoInvitations)
   const [loading] = useState(false)
   const [error] = useState<string | null>(null)
+  const [loadingMessage] = useState<string>('Loading your profile...')
+  const [recoveryState] = useState(createInitialRecoveryState())
 
   const createOrganization = async (_name: string) => {
     // Demo mode - organization already exists
@@ -171,6 +174,15 @@ export const useDemoUserManagement = () => {
     // Demo mode doesn't need to refetch
   }
 
+  const createProfileManually = async () => {
+    // Demo mode doesn't need manual profile creation
+    return true
+  }
+
+  const resetRecovery = () => {
+    // Demo mode doesn't need recovery reset
+  }
+
   const isAdmin = userProfile?.role === 'master_admin' || userProfile?.role === 'admin'
   const isMasterAdmin = userProfile?.role === 'master_admin'
 
@@ -181,6 +193,8 @@ export const useDemoUserManagement = () => {
     invitations,
     loading,
     error,
+    loadingMessage,
+    recoveryState,
     isAdmin,
     isMasterAdmin,
     createOrganization,
@@ -190,6 +204,8 @@ export const useDemoUserManagement = () => {
     deactivateUser,
     reactivateUser,
     cancelInvitation,
+    createProfileManually,
+    resetRecovery,
     refetch
   }
 }

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/DemoAuthContext'
 import type { UserProfile, Organization, UserInvitation, InviteUserData } from '../types/user'
+import { useProfileRecovery } from './useProfileRecovery'
+import { getRetryMessage } from '../types/profileErrors'
 
 export const useUserManagement = () => {
   const { user } = useAuth()
@@ -11,49 +13,82 @@ export const useUserManagement = () => {
   const [invitations, setInvitations] = useState<UserInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loadingMessage, setLoadingMessage] = useState<string>('Loading your profile...')
 
-  // Ensure user profile exists
+  const {
+    recoveryState,
+    retryProfileCreation,
+    createProfileManually,
+    resetRecovery
+  } = useProfileRecovery()
+
+  // Ensure user profile exists with automatic retry logic
   const ensureUserProfile = async () => {
     if (!user) return null
 
     try {
-      // First, try to get existing profile
-      const { data: existingProfile, error: fetchError } = await supabase
+      console.log('ensureUserProfile called for user:', user.id, user.email)
+
+      // First, try to get existing profile (simple check)
+      const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (existingProfile) {
+        console.log('Profile found immediately:', existingProfile)
         return existingProfile
       }
 
-      if (fetchError && fetchError.code === 'PGRST116') {
-        // Profile doesn't exist, create it
-        console.log('Creating user profile for:', user.email)
-        const { data: newProfile, error: createError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: user.id,
-            email: user.email || '',
-            role: 'user',
-            is_active: true
-          })
-          .select()
-          .single()
+      // Profile not found - attempt recovery with retry logic
+      console.log('Profile not found, starting automatic recovery')
+      setLoadingMessage(getRetryMessage(1, 3))
 
-        if (createError) {
-          console.error('Error creating user profile:', createError)
-          throw createError
-        }
-        
-        return newProfile
+      const recoveredProfile = await retryProfileCreation(user.id, user.email || '')
+
+      if (recoveredProfile) {
+        console.log('Profile recovered successfully:', recoveredProfile)
+        return recoveredProfile
       }
 
-      throw fetchError
+      // If automatic recovery failed, the error state is already set in recoveryState
+      console.error('Profile recovery failed after all retries')
+      throw new Error('Failed to create or recover user profile after multiple attempts')
+
     } catch (err) {
       console.error('Error in ensureUserProfile:', err)
       throw err
+    }
+  }
+
+  // Manual profile creation fallback
+  const createProfileManuallyFallback = async () => {
+    if (!user) {
+      setError('No user session found')
+      return false
+    }
+
+    try {
+      setLoading(true)
+      setLoadingMessage('Creating profile manually...')
+
+      const profile = await createProfileManually(user.id, user.email || '')
+
+      if (profile) {
+        setUserProfile(profile)
+        setError(null)
+        return true
+      }
+
+      setError('Manual profile creation failed. Please contact support.')
+      return false
+    } catch (err) {
+      console.error('Manual fallback creation error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create profile manually')
+      return false
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -361,6 +396,8 @@ export const useUserManagement = () => {
 
       setLoading(true)
       setError(null)
+      setLoadingMessage('Loading your profile...')
+
       try {
         await fetchUserProfile()
       } catch (err) {
@@ -372,6 +409,15 @@ export const useUserManagement = () => {
 
     loadUserData()
   }, [user])
+
+  // Update loading message based on recovery state
+  useEffect(() => {
+    if (recoveryState.isRecovering && recoveryState.currentAttempt > 0) {
+      setLoadingMessage(
+        getRetryMessage(recoveryState.currentAttempt, recoveryState.maxAttempts)
+      )
+    }
+  }, [recoveryState.currentAttempt, recoveryState.isRecovering])
 
   useEffect(() => {
     if (userProfile?.organization_id) {
@@ -390,6 +436,8 @@ export const useUserManagement = () => {
     invitations,
     loading,
     error,
+    loadingMessage,
+    recoveryState,
     isAdmin,
     isMasterAdmin,
     createOrganization,
@@ -399,7 +447,10 @@ export const useUserManagement = () => {
     deactivateUser,
     reactivateUser,
     cancelInvitation,
+    createProfileManually: createProfileManuallyFallback,
+    resetRecovery,
     refetch: () => {
+      resetRecovery()
       fetchUserProfile()
       fetchUsers()
       fetchInvitations()

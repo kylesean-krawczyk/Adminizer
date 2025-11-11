@@ -1,21 +1,43 @@
-import React, { useState } from 'react'
-import { Building, Users, ArrowRight } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Building, Users, ArrowRight, CheckCircle } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
+import { useNavigate } from 'react-router-dom'
 
 const OrganizationSetup = () => {
-  const { createOrganization } = useUserManagement()
+  const { createOrganization, userProfile } = useUserManagement()
   const [organizationName, setOrganizationName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const navigate = useNavigate()
+
+  // Redirect if user already has organization
+  useEffect(() => {
+    if (userProfile?.organization_id) {
+      console.log('User already has organization, redirecting to dashboard')
+      navigate('/', { replace: true })
+    }
+  }, [userProfile, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!organizationName.trim()) return
 
     setLoading(true)
+    setErrorMessage(null)
+
     try {
       await createOrganization(organizationName.trim())
+      setSuccess(true)
+
+      // Show success message briefly before redirecting
+      setTimeout(() => {
+        navigate('/', { replace: true })
+      }, 1500)
     } catch (error) {
-      alert('Failed to create organization: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setErrorMessage('Failed to create organization: ' + message)
+      console.error('Organization creation error:', error)
     } finally {
       setLoading(false)
     }
@@ -36,7 +58,18 @@ const OrganizationSetup = () => {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        {success ? (
+          <div className="mt-8 text-center space-y-4">
+            <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-green-100">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Organization Created!</h3>
+              <p className="text-sm text-gray-600 mt-2">Redirecting to your dashboard...</p>
+            </div>
+          </div>
+        ) : (
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="organization-name" className="block text-sm font-medium text-gray-700">
               Organization Name
@@ -90,7 +123,25 @@ const OrganizationSetup = () => {
               )}
             </button>
           </div>
+
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800">{errorMessage}</p>
+            </div>
+          )}
         </form>
+        )}
+
+        {/* Help text for users without organization */}
+        {!success && (
+          <div className="mt-6 bg-gray-50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Why do I need an organization?</h4>
+            <p className="text-sm text-gray-600">
+              Organizations help you collaborate with your team, manage user permissions,
+              and share documents securely. You'll be the master administrator with full control.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

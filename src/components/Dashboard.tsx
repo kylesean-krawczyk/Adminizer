@@ -9,10 +9,21 @@ import { useNavigate } from 'react-router-dom'
 import { APP_VERSION, getVersionInfo } from '../lib/version'
 import { useVertical } from '../contexts/VerticalContext'
 import { useEffect } from 'react'
+import ProfileLoadingCard from './UserManagement/ProfileLoadingCard'
+import ProfileErrorCard from './UserManagement/ProfileErrorCard'
 
 const Dashboard = () => {
   const { documents, loading: documentsLoading } = useDocuments()
-  const { userProfile, organization, loading: userLoading, isAdmin } = useUserManagement()
+  const {
+    userProfile,
+    organization,
+    loading: userLoading,
+    loadingMessage,
+    recoveryState,
+    isAdmin,
+    createProfileManually,
+    refetch
+  } = useUserManagement()
   const { isDepartmentVisible } = useDepartmentSettings()
   const { term } = useTerminology()
   const navigate = useNavigate()
@@ -21,6 +32,30 @@ const Dashboard = () => {
 
   const loading = documentsLoading || userLoading
   const versionInfo = getVersionInfo()
+
+  // Show loading card with retry progress
+  if (userLoading && recoveryState.isRecovering) {
+    return (
+      <ProfileLoadingCard
+        currentAttempt={recoveryState.currentAttempt}
+        maxAttempts={recoveryState.maxAttempts}
+        message={loadingMessage}
+        showRetryIndicator={recoveryState.currentAttempt > 1}
+      />
+    )
+  }
+
+  // Show error card if profile recovery failed
+  if (!userLoading && recoveryState.lastError && !userProfile) {
+    return (
+      <ProfileErrorCard
+        error={recoveryState.lastError}
+        onRetry={refetch}
+        onManualSetup={createProfileManually}
+        isRetrying={recoveryState.isRecovering}
+      />
+    )
+  }
 
   // Calculate real stats from documents
   const totalDocuments = documents.length
