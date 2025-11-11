@@ -90,16 +90,23 @@ export class ToolAccessRequestService {
         .from('ai_tool_access_requests')
         .select(`
           *,
-          tool:ai_tool_registry!ai_tool_access_requests_tool_id_fkey(id, name, slug, description, category),
-          reviewer_profile:user_profiles!ai_tool_access_requests_reviewed_by_fkey(id, email, full_name)
+          tool:ai_tool_registry(id, name, slug, description, category),
+          reviewer_profile:user_profiles!reviewed_by(id, email, full_name)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user requests:', error);
+        console.error('Supabase error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
       return (data || []) as ToolAccessRequestWithDetails[];
     } catch (error) {
       console.error('Error fetching user requests:', error);
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error message:', error.message);
+      }
       return [];
     }
   }
@@ -110,8 +117,8 @@ export class ToolAccessRequestService {
         .from('ai_tool_access_requests')
         .select(`
           *,
-          user_profile:user_profiles!ai_tool_access_requests_user_id_fkey(id, email, full_name, role),
-          tool:ai_tool_registry!ai_tool_access_requests_tool_id_fkey(id, name, slug, description, category)
+          user_profile:user_profiles!user_id(id, email, full_name, role),
+          tool:ai_tool_registry(id, name, slug, description, category)
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -130,10 +137,17 @@ export class ToolAccessRequestService {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching pending requests:', error);
+        console.error('Supabase error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
       return (data || []) as ToolAccessRequestWithDetails[];
     } catch (error) {
-      console.error('Error fetching pending requests:', error);
+      console.error('Error fetching pending requests - returning empty array:', error);
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error message:', error.message);
+      }
       return [];
     }
   }
@@ -144,9 +158,9 @@ export class ToolAccessRequestService {
         .from('ai_tool_access_requests')
         .select(`
           *,
-          user_profile:user_profiles!ai_tool_access_requests_user_id_fkey(id, email, full_name, role),
-          tool:ai_tool_registry!ai_tool_access_requests_tool_id_fkey(id, name, slug, description, category),
-          reviewer_profile:user_profiles!ai_tool_access_requests_reviewed_by_fkey(id, email, full_name)
+          user_profile:user_profiles!user_id(id, email, full_name, role),
+          tool:ai_tool_registry(id, name, slug, description, category),
+          reviewer_profile:user_profiles!reviewed_by(id, email, full_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -176,10 +190,17 @@ export class ToolAccessRequestService {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching all requests:', error);
+        console.error('Supabase error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
       return (data || []) as ToolAccessRequestWithDetails[];
     } catch (error) {
       console.error('Error fetching all requests:', error);
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error message:', error.message);
+      }
       return [];
     }
   }

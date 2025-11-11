@@ -12,6 +12,7 @@ export interface RequestNotificationData {
   low: number;
   badgeColor: 'red' | 'orange' | 'blue' | 'gray';
   badgeText: string;
+  error?: string;
 }
 
 export function useRequestNotifications() {
@@ -23,9 +24,11 @@ export function useRequestNotifications() {
     normal: 0,
     low: 0,
     badgeColor: 'gray',
-    badgeText: '0'
+    badgeText: '0',
+    error: undefined
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadNotifications = useCallback(async () => {
     if (!user?.id) {
@@ -35,6 +38,7 @@ export function useRequestNotifications() {
 
     try {
       setLoading(true);
+      setError(null);
 
       const pendingRequests = await ToolAccessRequestService.getPendingRequests();
 
@@ -79,10 +83,23 @@ export function useRequestNotifications() {
         normal,
         low,
         badgeColor,
-        badgeText
+        badgeText,
+        error: undefined
       });
     } catch (err) {
       console.error('Error loading notifications:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
+      setError(errorMessage);
+      setNotifications({
+        total: 0,
+        urgent: 0,
+        high: 0,
+        normal: 0,
+        low: 0,
+        badgeColor: 'gray',
+        badgeText: '0',
+        error: errorMessage
+      });
     } finally {
       setLoading(false);
     }
@@ -126,6 +143,7 @@ export function useRequestNotifications() {
   return {
     notifications,
     loading,
+    error,
     hasUrgentRequests,
     hasHighPriorityRequests,
     hasPendingRequests,

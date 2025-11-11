@@ -13,7 +13,7 @@ const Navigation = () => {
   const { userProfile, isAdmin } = useUserManagement()
   const { term } = useTerminology()
   const { colors } = useTheme()
-  const { notifications, hasPendingRequests } = useRequestNotifications()
+  const { notifications, hasPendingRequests, error: notificationError } = useRequestNotifications()
   const navigate = useNavigate()
   const [customLogo, setCustomLogo] = useState<string | null>(null)
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false)
@@ -25,6 +25,13 @@ const Navigation = () => {
       setCustomLogo(savedLogo)
     }
   }, [])
+
+  // Log notification errors but don't block UI
+  useEffect(() => {
+    if (notificationError) {
+      console.warn('Notification system error (non-blocking):', notificationError)
+    }
+  }, [notificationError])
 
   const handleSignOut = async () => {
     try {
