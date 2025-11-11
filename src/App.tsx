@@ -26,6 +26,7 @@ import VerticalKeyboardShortcuts from './components/Dev/VerticalKeyboardShortcut
 import FeatureFlagsSettings from './components/Settings/FeatureFlagsSettings'
 import ThemePreview from './components/Settings/ThemePreview'
 import NotificationPreferencesPage from './components/Settings/NotificationPreferencesPage'
+import VerticalConfigurationSettings from './components/Settings/VerticalConfigurationSettings'
 import ChatWidget from './components/Chat/ChatWidget'
 import ToolRegistryPanel from './components/Dev/ToolRegistryPanel'
 import ToolExecutionLogs from './components/Dev/ToolExecutionLogs'
@@ -71,6 +72,7 @@ function App() {
                         <Route path="/settings/features" element={<FeatureFlagsSettings />} />
                         <Route path="/settings/theme" element={<ThemePreview />} />
                         <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
+                        <Route path="/settings/vertical" element={<VerticalConfigurationSettings />} />
                         <Route path="/dev/tool-registry" element={<ToolRegistryPanel />} />
                         <Route path="/dev/tool-logs" element={<ToolExecutionLogs />} />
                         <Route path="/workflows" element={<WorkflowListPage />} />

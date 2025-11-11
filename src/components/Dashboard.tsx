@@ -11,6 +11,7 @@ import { useVertical } from '../contexts/VerticalContext'
 import { useEffect } from 'react'
 import ProfileLoadingCard from './UserManagement/ProfileLoadingCard'
 import ProfileErrorCard from './UserManagement/ProfileErrorCard'
+import SuperAdminVerticalSwitcher from './Admin/SuperAdminVerticalSwitcher'
 
 const Dashboard = () => {
   const { documents, loading: documentsLoading } = useDocuments()
@@ -320,11 +321,14 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="bg-white/20 px-3 py-1 rounded-full text-white text-sm font-medium">
-                {userProfile.email}
-              </span>
-              <CheckCircle className="h-5 w-5 text-green-300" />
+            <div className="flex items-center space-x-4">
+              <SuperAdminVerticalSwitcher />
+              <div className="flex items-center space-x-2 border-l border-white/30 pl-4">
+                <span className="bg-white/20 px-3 py-1 rounded-full text-white text-sm font-medium">
+                  {userProfile.email}
+                </span>
+                <CheckCircle className="h-5 w-5 text-green-300" />
+              </div>
             </div>
           </div>
         </div>

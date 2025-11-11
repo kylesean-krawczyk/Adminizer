@@ -9,7 +9,8 @@ import {
   Plus,
   Eye,
   Shield,
-  Flag
+  Flag,
+  LayoutGrid
 } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
 import { useDepartmentSettings } from '../../hooks/useDepartmentSettings'
@@ -319,17 +320,30 @@ const CollapsibleSidebar = () => {
 
                   {/* Feature Flags (Master Admin Only) */}
                   {userProfile?.role === 'master_admin' && (
-                    <button
-                      onClick={() => handleNavigation('/settings/features')}
-                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        isActive('/settings/features')
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <Flag className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Feature Flags</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleNavigation('/settings/features')}
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive('/settings/features')
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                        }`}
+                      >
+                        <Flag className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">Feature Flags</span>
+                      </button>
+                      <button
+                        onClick={() => handleNavigation('/settings/vertical')}
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive('/settings/vertical')
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                        }`}
+                      >
+                        <LayoutGrid className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">Vertical Configuration</span>
+                      </button>
+                    </>
                   )}
                 </div>
               )}
