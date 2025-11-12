@@ -12,10 +12,43 @@ import VersionHistoryPanel from './Customization/VersionHistoryPanel'
 
 const OrganizationCustomizationPage: React.FC = () => {
   const navigate = useNavigate()
-  const { userProfile, organization } = useUserManagement()
+  const { userProfile, organization, loading: userLoading } = useUserManagement()
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'stats' | 'departments' | 'branding' | 'history'>('dashboard')
 
+  // CRITICAL: All hooks must be called before any conditional returns
+  // This prevents React Error #310: "Rendered more hooks than during the previous render"
+  const {
+    selectedVertical,
+    draft,
+    loading,
+    saving,
+    hasUnsavedChanges,
+    updateDraft,
+    save,
+    resetToDefaults,
+    discardChanges,
+    switchVertical,
+    exportConfig,
+    importConfig,
+    refresh
+  } = useOrganizationCustomization({
+    organizationId: organization?.id || '',
+    initialVerticalId: (userProfile?.active_vertical as VerticalId) || 'church'
+  })
+
+  // Show loading state while user data is being fetched
+  if (userLoading) {
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Check permissions AFTER all hooks have been called
   if (!userProfile || !organization || userProfile.role !== 'master_admin') {
     return (
       <div className="max-w-4xl mx-auto p-8">
@@ -39,25 +72,6 @@ const OrganizationCustomizationPage: React.FC = () => {
       </div>
     )
   }
-
-  const {
-    selectedVertical,
-    draft,
-    loading,
-    saving,
-    hasUnsavedChanges,
-    updateDraft,
-    save,
-    resetToDefaults,
-    discardChanges,
-    switchVertical,
-    exportConfig,
-    importConfig,
-    refresh
-  } = useOrganizationCustomization({
-    organizationId: organization.id,
-    initialVerticalId: (userProfile.active_vertical as VerticalId) || 'church'
-  })
 
   const handleSave = async () => {
     try {

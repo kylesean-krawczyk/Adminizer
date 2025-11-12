@@ -39,6 +39,12 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   const [error, setError] = useState<string | null>(null)
 
   const loadCustomization = useCallback(async (verticalId: VerticalId) => {
+    // Skip loading if organizationId is empty
+    if (!organizationId) {
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -115,6 +121,11 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   }, [])
 
   const save = useCallback(async (changeDescription?: string, changeNote?: string) => {
+    // Prevent save if no organization
+    if (!organizationId) {
+      throw new Error('No organization available')
+    }
+
     try {
       setSaving(true)
       setError(null)
@@ -207,6 +218,8 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   }, [draft.hasChanges])
 
   const loadHistory = useCallback(async (options?: { limit?: number; offset?: number }) => {
+    if (!organizationId) return []
+
     try {
       return await getCustomizationHistory(organizationId, selectedVertical, options)
     } catch (err) {
@@ -216,6 +229,10 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   }, [organizationId, selectedVertical])
 
   const rollback = useCallback(async (historyId: string) => {
+    if (!organizationId) {
+      throw new Error('No organization available')
+    }
+
     try {
       setSaving(true)
       const restored = await rollbackToVersion(historyId, organizationId, selectedVertical)
@@ -239,6 +256,10 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   }, [organizationId, selectedVertical])
 
   const copyFrom = useCallback(async (params: Omit<CopyCustomizationParams, 'organizationId' | 'targetVerticalId'>) => {
+    if (!organizationId) {
+      throw new Error('No organization available')
+    }
+
     try {
       setSaving(true)
       const copied = await copyFromVertical({
@@ -266,6 +287,10 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   }, [organizationId, selectedVertical])
 
   const exportConfig = useCallback(async () => {
+    if (!organizationId) {
+      throw new Error('No organization available')
+    }
+
     try {
       return await exportCustomization(organizationId, selectedVertical)
     } catch (err) {
@@ -275,6 +300,10 @@ export const useOrganizationCustomization = (options: UseOrganizationCustomizati
   }, [organizationId, selectedVertical])
 
   const importConfig = useCallback(async (jsonData: string) => {
+    if (!organizationId) {
+      throw new Error('No organization available')
+    }
+
     try {
       setSaving(true)
       const imported = await importCustomization(organizationId, selectedVertical, jsonData)
