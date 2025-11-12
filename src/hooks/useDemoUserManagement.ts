@@ -20,6 +20,8 @@ export interface Organization {
   id: string
   name: string
   created_by: string | null
+  vertical: 'church' | 'business' | 'estate'
+  enabled_verticals: ('church' | 'business' | 'estate')[]
   created_at: string
   updated_at: string
 }
@@ -61,6 +63,8 @@ const demoOrganization: Organization = {
   id: 'demo-org-1',
   name: 'Demo Organization',
   created_by: 'demo-admin-id',
+  vertical: 'church',
+  enabled_verticals: ['church', 'business', 'estate'],
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z'
 }
