@@ -94,6 +94,38 @@ export interface VerticalBranding {
   colors: ThemeColors
 }
 
+export interface DashboardStatCard {
+  id: string
+  label: string
+  icon: LucideIcon
+  color: string
+  metricType: 'documents' | 'expiring' | 'overdue' | 'categories' | 'custom'
+  getValue?: (documents: any[]) => number
+}
+
+export interface DepartmentButton {
+  id: string
+  name: string
+  description: string
+  icon: LucideIcon
+  color: string
+  textColor: string
+  bgColor: string
+  route: string
+  requiredRole?: 'admin' | 'master_admin' | 'user'
+  requiredFeature?: string
+}
+
+export interface DashboardConfig {
+  title: string
+  subtitle: string
+  stats: DashboardStatCard[]
+  coreDepartments: DepartmentButton[]
+  additionalDepartments: DepartmentButton[]
+  coreSectionTitle: string
+  additionalSectionTitle: string
+}
+
 export interface VerticalConfig {
   id: VerticalId
   name: string
@@ -102,6 +134,7 @@ export interface VerticalConfig {
   userModel: UserModel
   terminology: TerminologyMap
   navigation: NavigationConfig
+  dashboardConfig: DashboardConfig
   features: FeatureConfig[]
   integrations: {
     [category: string]: IntegrationConfig[]

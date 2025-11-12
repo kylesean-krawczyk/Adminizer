@@ -9,7 +9,9 @@ import {
   FileCheck,
   Clock,
   Lock,
-  GitBranch
+  GitBranch,
+  FileText,
+  FolderCheck
 } from 'lucide-react'
 import { VerticalConfig } from '../types'
 
@@ -72,6 +74,127 @@ export const estateConfig: VerticalConfig = {
     comingSoonMessage: 'is coming soon for your estate. This powerful feature will help you analyze asset distribution, identify planning opportunities, and optimize your estate strategy for your beneficiaries.',
     accessRestrictedMessage: 'This area contains sensitive estate and beneficiary information and requires owner privileges.',
     featureUnavailableMessage: 'is not available for estate planning at this time.'
+  },
+
+  dashboardConfig: {
+    title: 'Estate Planning Services',
+    subtitle: 'Access your client management and legal tools',
+    coreSectionTitle: 'Core Services',
+    additionalSectionTitle: 'Additional Services',
+    stats: [
+      {
+        id: 'active-clients',
+        label: 'Active Clients',
+        icon: Users,
+        color: 'bg-blue-500',
+        metricType: 'custom'
+      },
+      {
+        id: 'estate-plans',
+        label: 'Estate Plans',
+        icon: FolderCheck,
+        color: 'bg-green-500',
+        metricType: 'documents'
+      },
+      {
+        id: 'trust-documents',
+        label: 'Trust Documents',
+        icon: FileText,
+        color: 'bg-purple-500',
+        metricType: 'categories'
+      },
+      {
+        id: 'pending-reviews',
+        label: 'Pending Reviews',
+        icon: Clock,
+        color: 'bg-yellow-500',
+        metricType: 'expiring'
+      }
+    ],
+    coreDepartments: [
+      {
+        id: 'client-management',
+        name: 'Client Management',
+        description: 'Client records, relationships, communications',
+        icon: Users,
+        color: 'bg-blue-600 hover:bg-blue-700',
+        textColor: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        route: '/department/human-resources'
+      },
+      {
+        id: 'trust-estate-admin',
+        name: 'Trust & Estate Admin',
+        description: 'Trust administration and estate management',
+        icon: FileCheck,
+        color: 'bg-green-600 hover:bg-green-700',
+        textColor: 'text-green-600',
+        bgColor: 'bg-green-50',
+        route: '/department/finance-accounting'
+      },
+      {
+        id: 'legal-documentation',
+        name: 'Legal Documentation',
+        description: 'Wills, trusts, powers of attorney',
+        icon: FileText,
+        color: 'bg-indigo-600 hover:bg-indigo-700',
+        textColor: 'text-indigo-600',
+        bgColor: 'bg-indigo-50',
+        route: '/department/operations'
+      },
+      {
+        id: 'financial-planning',
+        name: 'Financial Planning',
+        description: 'Asset allocation and financial strategies',
+        icon: DollarSign,
+        color: 'bg-emerald-600 hover:bg-emerald-700',
+        textColor: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        route: '/department/sales'
+      },
+      {
+        id: 'tax-services',
+        name: 'Tax Services',
+        description: 'Tax planning and compliance',
+        icon: Shield,
+        color: 'bg-purple-600 hover:bg-purple-700',
+        textColor: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        route: '/department/customer-support'
+      }
+    ],
+    additionalDepartments: [
+      {
+        id: 'probate-services',
+        name: 'Probate Services',
+        description: 'Estate settlement and probate administration',
+        icon: Lock,
+        color: 'bg-orange-600 hover:bg-orange-700',
+        textColor: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        route: '/department/marketing'
+      },
+      {
+        id: 'compliance-reporting',
+        name: 'Compliance & Reporting',
+        description: 'Regulatory compliance and reporting',
+        icon: FileCheck,
+        color: 'bg-cyan-600 hover:bg-cyan-700',
+        textColor: 'text-cyan-600',
+        bgColor: 'bg-cyan-50',
+        route: '/department/it-technology'
+      },
+      {
+        id: 'real-estate',
+        name: 'Real Estate',
+        description: 'Property management and transfers',
+        icon: Home,
+        color: 'bg-teal-600 hover:bg-teal-700',
+        textColor: 'text-teal-600',
+        bgColor: 'bg-teal-50',
+        route: '/department/legal-compliance'
+      }
+    ]
   },
 
   navigation: {

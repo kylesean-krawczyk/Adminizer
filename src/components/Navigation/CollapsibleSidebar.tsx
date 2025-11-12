@@ -6,22 +6,19 @@ import {
   ChevronRight,
   Building2,
   Settings,
-  Plus,
-  Eye,
   Shield,
   Flag,
   LayoutGrid
 } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
-import { useDepartmentSettings } from '../../hooks/useDepartmentSettings'
+import { useVerticalDashboard } from '../../hooks'
 import { useVertical } from '../../contexts/VerticalContext'
-import DepartmentVisibilityModal from '../Settings/DepartmentVisibilityModal'
 
 const CollapsibleSidebar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { isAdmin, userProfile } = useUserManagement()
-  const { isDepartmentVisible } = useDepartmentSettings()
+  const { coreSectionTitle, additionalSectionTitle } = useVerticalDashboard()
   const { vertical } = useVertical()
   
   // Load initial state from sessionStorage, default to expanded
@@ -32,7 +29,6 @@ const CollapsibleSidebar = () => {
   
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['departments', 'more-departments']))
   const [isMobileOverlay, setIsMobileOverlay] = useState(false)
-  const [departmentModalOpen, setDepartmentModalOpen] = useState(false)
 
   // Save state to sessionStorage whenever it changes
   useEffect(() => {
@@ -68,8 +64,6 @@ const CollapsibleSidebar = () => {
   const moreDepartments = vertical.navigation.additionalDepartments || []
   const operationsCategories = vertical.navigation.operationsNav || []
   const adminItems = vertical.navigation.adminNav || []
-
-  const visibleMoreDepartments = moreDepartments.filter(dept => isDepartmentVisible(dept.id))
 
   const hasRoleAccess = (requiredRole?: string): boolean => {
     if (!requiredRole) return true
@@ -132,11 +126,11 @@ const CollapsibleSidebar = () => {
                   ? 'text-purple-600 bg-purple-50 font-medium'
                   : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
               }`}
-              title={!isExpanded ? 'Core Departments' : undefined}
+              title={!isExpanded ? coreSectionTitle : undefined}
             >
               <div className="flex items-center gap-3">
                 <Building2 className={`h-5 w-5 flex-shrink-0 ${location.pathname.startsWith('/department') ? 'text-purple-600' : 'text-gray-500'}`} />
-                {isExpanded && <span className="text-sm font-medium">Core Departments</span>}
+                {isExpanded && <span className="text-sm font-medium">{coreSectionTitle}</span>}
               </div>
               {isExpanded && (
                 expandedSections.has('departments')
@@ -170,20 +164,20 @@ const CollapsibleSidebar = () => {
           </div>
 
           {/* More Departments */}
-          {(visibleMoreDepartments.length > 0 || isAdmin) && (
+          {moreDepartments.length > 0 && (
             <div className="px-3 mt-2">
               <button
                 onClick={() => isExpanded && toggleSection('more-departments')}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
-                  visibleMoreDepartments.some(dept => dept.route && isActive(dept.route))
+                  moreDepartments.some(dept => dept.route && isActive(dept.route))
                     ? 'text-purple-600 bg-purple-50 font-medium'
                     : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
-                title={!isExpanded ? 'More Departments' : undefined}
+                title={!isExpanded ? additionalSectionTitle : undefined}
               >
                 <div className="flex items-center gap-3">
-                  <Plus className={`h-5 w-5 flex-shrink-0 ${visibleMoreDepartments.some(dept => dept.route && isActive(dept.route)) ? 'text-purple-600' : 'text-gray-500'}`} />
-                  {isExpanded && <span className="text-sm font-medium">More Departments</span>}
+                  <Building2 className={`h-5 w-5 flex-shrink-0 ${moreDepartments.some(dept => dept.route && isActive(dept.route)) ? 'text-purple-600' : 'text-gray-500'}`} />
+                  {isExpanded && <span className="text-sm font-medium">{additionalSectionTitle}</span>}
                 </div>
                 {isExpanded && (
                   expandedSections.has('more-departments')
@@ -194,7 +188,7 @@ const CollapsibleSidebar = () => {
               
               {isExpanded && expandedSections.has('more-departments') && (
                 <div className="mt-1 ml-4 space-y-1">
-                  {visibleMoreDepartments.map((dept) => {
+                  {moreDepartments.map((dept) => {
                     if (!hasRoleAccess(dept.requiredRole)) return null
                     const DeptIcon = dept.icon
                     return (
@@ -212,17 +206,6 @@ const CollapsibleSidebar = () => {
                       </button>
                     )
                   })}
-
-                  {/* Department Settings Button (Admin Only) */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => setDepartmentModalOpen(true)}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 text-gray-600 hover:text-purple-600 hover:bg-purple-50"
-                    >
-                      <Eye className="h-4 w-4 flex-shrink-0 text-gray-500" />
-                      <span className="truncate">Manage Departments</span>
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -351,12 +334,6 @@ const CollapsibleSidebar = () => {
           )}
         </nav>
       </div>
-
-      {/* Department Visibility Modal */}
-      <DepartmentVisibilityModal
-        isOpen={departmentModalOpen}
-        onClose={() => setDepartmentModalOpen(false)}
-      />
     </div>
   )
 

@@ -1,7 +1,7 @@
-import { FileText, Clock, AlertTriangle, Users, Settings, Building2, Calculator, TrendingUp, Cog, Headphones, Megaphone, Monitor, Scale, Package, Briefcase, FlaskConical, CheckCircle, Info, GitBranch, Shield } from 'lucide-react'
+import { Settings, Building2, Info, GitBranch, Shield, FileText, Clock, Users, CheckCircle } from 'lucide-react'
 import { useDocuments } from '../hooks'
 import { useUserManagement } from '../hooks'
-import { useDepartmentSettings } from '../hooks/useDepartmentSettings'
+import { useVerticalDashboard } from '../hooks'
 import { useTerminology } from '../hooks'
 import { usePageContext } from '../contexts/PageContextContext'
 import { format, isAfter, isBefore, addDays } from 'date-fns'
@@ -25,7 +25,13 @@ const Dashboard = () => {
     createProfileManually,
     refetch
   } = useUserManagement()
-  const { isDepartmentVisible } = useDepartmentSettings()
+  const {
+    title: dashboardTitle,
+    subtitle: dashboardSubtitle,
+    stats: dashboardStats,
+    coreDepartments,
+    additionalDepartments
+  } = useVerticalDashboard()
   const { term } = useTerminology()
   const navigate = useNavigate()
   const { vertical } = useVertical()
@@ -58,174 +64,55 @@ const Dashboard = () => {
     )
   }
 
-  // Calculate real stats from documents
-  const totalDocuments = documents.length
-  const expiringSoon = documents.filter(doc => {
-    if (!doc.expiry_date) return false
-    const expiryDate = new Date(doc.expiry_date)
-    const thirtyDaysFromNow = addDays(new Date(), 30)
-    return isAfter(expiryDate, new Date()) && isBefore(expiryDate, thirtyDaysFromNow)
-  }).length
-  
-  const overdue = documents.filter(doc => {
-    if (!doc.expiry_date) return false
-    return isBefore(new Date(doc.expiry_date), new Date())
-  }).length
+  // Calculate metrics based on document data
+  const calculateMetricValue = (metricType: string): number => {
+    switch (metricType) {
+      case 'documents':
+        return documents.length
+      case 'expiring':
+        return documents.filter(doc => {
+          if (!doc.expiry_date) return false
+          const expiryDate = new Date(doc.expiry_date)
+          const thirtyDaysFromNow = addDays(new Date(), 30)
+          return isAfter(expiryDate, new Date()) && isBefore(expiryDate, thirtyDaysFromNow)
+        }).length
+      case 'overdue':
+        return documents.filter(doc => {
+          if (!doc.expiry_date) return false
+          return isBefore(new Date(doc.expiry_date), new Date())
+        }).length
+      case 'categories':
+        return new Set(documents.map(d => d.category)).size
+      case 'custom':
+        return 0
+      default:
+        return 0
+    }
+  }
 
-  const stats = [
-    { label: 'Total Documents', value: totalDocuments.toString(), icon: FileText, color: 'bg-blue-500' },
-    { label: 'Expiring Soon', value: expiringSoon.toString(), icon: Clock, color: 'bg-yellow-500' },
-    { label: 'Overdue', value: overdue.toString(), icon: AlertTriangle, color: 'bg-red-500' },
-    { label: 'Categories', value: new Set(documents.map(d => d.category)).size.toString(), icon: Users, color: 'bg-green-500' },
-  ]
+  const stats = dashboardStats.map(statConfig => ({
+    label: statConfig.label,
+    value: calculateMetricValue(statConfig.metricType).toString(),
+    icon: statConfig.icon,
+    color: statConfig.color
+  }))
 
   useEffect(() => {
     updateContext({
       pageType: 'dashboard',
       route: '/',
       stats: {
-        totalDocuments,
-        expiringSoon,
-        overdue,
-        categories: new Set(documents.map(d => d.category)).size
+        totalDocuments: calculateMetricValue('documents'),
+        expiringSoon: calculateMetricValue('expiring'),
+        overdue: calculateMetricValue('overdue'),
+        categories: calculateMetricValue('categories')
       },
       recentActions: ['viewed_dashboard', 'checked_stats']
     })
-  }, [totalDocuments, expiringSoon, overdue, documents, updateContext])
+  }, [documents, updateContext])
 
-  // Core business departments (always visible)
-  const coreDepartments = [
-    {
-      id: 'human-resources',
-      name: 'Human Resources',
-      description: 'Employee records, onboarding, performance',
-      icon: Users,
-      color: 'bg-blue-600 hover:bg-blue-700',
-      textColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      route: '/department/human-resources'
-    },
-    {
-      id: 'finance-accounting',
-      name: 'Finance & Accounting',
-      description: 'Invoicing, expenses, financial reporting',
-      icon: Calculator,
-      color: 'bg-green-600 hover:bg-green-700',
-      textColor: 'text-green-600',
-      bgColor: 'bg-green-50',
-      route: '/department/finance-accounting'
-    },
-    {
-      id: 'sales',
-      name: 'Sales',
-      description: 'AI-powered sales analytics and insights',
-      icon: TrendingUp,
-      color: 'bg-emerald-600 hover:bg-emerald-700',
-      textColor: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
-      route: '/department/sales'
-    },
-    {
-      id: 'operations',
-      name: 'Operations',
-      description: 'Workflows, inventory, process management',
-      icon: Cog,
-      color: 'bg-purple-600 hover:bg-purple-700',
-      textColor: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      route: '/department/operations'
-    },
-    {
-      id: 'customer-support',
-      name: 'Customer Support',
-      description: 'Tickets, cases, customer communications',
-      icon: Headphones,
-      color: 'bg-indigo-600 hover:bg-indigo-700',
-      textColor: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
-      route: '/department/customer-support'
-    }
-  ]
-
-  // Additional departments (can be toggled on/off)
-  const moreDepartments = [
-    {
-      id: 'marketing',
-      name: 'Marketing',
-      description: 'Campaigns, content, lead generation',
-      icon: Megaphone,
-      color: 'bg-pink-600 hover:bg-pink-700',
-      textColor: 'text-pink-600',
-      bgColor: 'bg-pink-50',
-      route: '/department/marketing'
-    },
-    {
-      id: 'it-technology',
-      name: 'IT & Technology',
-      description: 'Asset management, helpdesk, security',
-      icon: Monitor,
-      color: 'bg-cyan-600 hover:bg-cyan-700',
-      textColor: 'text-cyan-600',
-      bgColor: 'bg-cyan-50',
-      route: '/department/it-technology'
-    },
-    {
-      id: 'legal-compliance',
-      name: 'Legal & Compliance',
-      description: 'Contracts, policies, risk management',
-      icon: Scale,
-      color: 'bg-gray-600 hover:bg-gray-700',
-      textColor: 'text-gray-600',
-      bgColor: 'bg-gray-50',
-      route: '/department/legal-compliance'
-    },
-    {
-      id: 'procurement',
-      name: 'Procurement',
-      description: 'Vendors, purchase orders, suppliers',
-      icon: Package,
-      color: 'bg-orange-600 hover:bg-orange-700',
-      textColor: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      route: '/department/procurement'
-    },
-    {
-      id: 'project-management',
-      name: 'Project Management',
-      description: 'Projects, tasks, timelines, resources',
-      icon: Briefcase,
-      color: 'bg-red-600 hover:bg-red-700',
-      textColor: 'text-red-600',
-      bgColor: 'bg-red-50',
-      route: '/department/project-management'
-    },
-    {
-      id: 'research-development',
-      name: 'Research & Development',
-      description: 'Innovation, product development, testing',
-      icon: FlaskConical,
-      color: 'bg-teal-600 hover:bg-teal-700',
-      textColor: 'text-teal-600',
-      bgColor: 'bg-teal-50',
-      route: '/department/research-development'
-    },
-    {
-      id: 'quality-assurance',
-      name: 'Quality Assurance',
-      description: 'Quality control, audits, standards',
-      icon: CheckCircle,
-      color: 'bg-lime-600 hover:bg-lime-700',
-      textColor: 'text-lime-600',
-      bgColor: 'bg-lime-50',
-      route: '/department/quality-assurance'
-    }
-  ]
-
-  // Filter more departments based on visibility settings
-  const visibleMoreDepartments = moreDepartments.filter(dept => isDepartmentVisible(dept.id))
-
-  // Combine all visible departments
-  const allDepartments = [...coreDepartments, ...visibleMoreDepartments]
+  // Combine all departments from vertical configuration
+  const allDepartments = [...coreDepartments, ...additionalDepartments]
 
   // Get recent documents (last 5)
   const recentDocuments = documents.slice(0, 5)
@@ -403,8 +290,8 @@ const Dashboard = () => {
       {/* Business Departments */}
       <div className="bg-white rounded-lg shadow p-8">
         <div className="mb-6">
-          <h3 className="text-2xl font-bold text-gray-900">{term('businessDepartments', { capitalize: 'title' })}</h3>
-          <p className="text-gray-600 mt-2">Access your {term('department')}-specific tools and resources</p>
+          <h3 className="text-2xl font-bold text-gray-900">{dashboardTitle}</h3>
+          <p className="text-gray-600 mt-2">{dashboardSubtitle}</p>
         </div>
 
         <div className="department-card-grid">

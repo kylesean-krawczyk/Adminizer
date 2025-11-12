@@ -13,7 +13,9 @@ import {
   Briefcase,
   FlaskConical,
   CheckCircle,
-  GitBranch
+  GitBranch,
+  Clock,
+  FolderOpen
 } from 'lucide-react'
 import { VerticalConfig } from '../types'
 
@@ -76,6 +78,167 @@ export const businessConfig: VerticalConfig = {
     comingSoonMessage: 'is coming soon for your business. This powerful feature will help you analyze customer behavior, identify sales trends, and optimize revenue generation strategies.',
     accessRestrictedMessage: 'This area contains sensitive customer and sales information and requires administrator privileges.',
     featureUnavailableMessage: 'is not available for businesses at this time.'
+  },
+
+  dashboardConfig: {
+    title: 'Business Operations',
+    subtitle: 'Manage your business departments and workflows',
+    coreSectionTitle: 'Core Departments',
+    additionalSectionTitle: 'Additional Departments',
+    stats: [
+      {
+        id: 'active-projects',
+        label: 'Active Projects',
+        icon: FolderOpen,
+        color: 'bg-blue-500',
+        metricType: 'documents'
+      },
+      {
+        id: 'client-contracts',
+        label: 'Client Contracts',
+        icon: FileText,
+        color: 'bg-green-500',
+        metricType: 'categories'
+      },
+      {
+        id: 'pending-tasks',
+        label: 'Pending Tasks',
+        icon: Clock,
+        color: 'bg-yellow-500',
+        metricType: 'expiring'
+      },
+      {
+        id: 'team-members',
+        label: 'Team Members',
+        icon: Users,
+        color: 'bg-purple-500',
+        metricType: 'custom'
+      }
+    ],
+    coreDepartments: [
+      {
+        id: 'human-resources',
+        name: 'Human Resources',
+        description: 'Team management, hiring, performance',
+        icon: Users,
+        color: 'bg-blue-600 hover:bg-blue-700',
+        textColor: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        route: '/department/human-resources'
+      },
+      {
+        id: 'finance-accounting',
+        name: 'Finance & Accounting',
+        description: 'Financial planning, invoicing, reporting',
+        icon: Calculator,
+        color: 'bg-green-600 hover:bg-green-700',
+        textColor: 'text-green-600',
+        bgColor: 'bg-green-50',
+        route: '/department/finance-accounting'
+      },
+      {
+        id: 'sales',
+        name: 'Sales',
+        description: 'AI-powered sales analytics and insights',
+        icon: TrendingUp,
+        color: 'bg-emerald-600 hover:bg-emerald-700',
+        textColor: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        route: '/department/sales'
+      },
+      {
+        id: 'operations',
+        name: 'Operations',
+        description: 'Workflows, inventory, process management',
+        icon: Cog,
+        color: 'bg-purple-600 hover:bg-purple-700',
+        textColor: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        route: '/department/operations'
+      },
+      {
+        id: 'customer-support',
+        name: 'Customer Support',
+        description: 'Tickets, cases, customer communications',
+        icon: Headphones,
+        color: 'bg-indigo-600 hover:bg-indigo-700',
+        textColor: 'text-indigo-600',
+        bgColor: 'bg-indigo-50',
+        route: '/department/customer-support'
+      }
+    ],
+    additionalDepartments: [
+      {
+        id: 'marketing',
+        name: 'Marketing',
+        description: 'Campaigns, content, lead generation',
+        icon: Megaphone,
+        color: 'bg-pink-600 hover:bg-pink-700',
+        textColor: 'text-pink-600',
+        bgColor: 'bg-pink-50',
+        route: '/department/marketing'
+      },
+      {
+        id: 'it-technology',
+        name: 'IT & Technology',
+        description: 'Asset management, helpdesk, security',
+        icon: Monitor,
+        color: 'bg-cyan-600 hover:bg-cyan-700',
+        textColor: 'text-cyan-600',
+        bgColor: 'bg-cyan-50',
+        route: '/department/it-technology'
+      },
+      {
+        id: 'legal-compliance',
+        name: 'Legal & Compliance',
+        description: 'Contracts, policies, risk management',
+        icon: Scale,
+        color: 'bg-gray-600 hover:bg-gray-700',
+        textColor: 'text-gray-600',
+        bgColor: 'bg-gray-50',
+        route: '/department/legal-compliance'
+      },
+      {
+        id: 'procurement',
+        name: 'Procurement',
+        description: 'Vendors, purchase orders, suppliers',
+        icon: Package,
+        color: 'bg-orange-600 hover:bg-orange-700',
+        textColor: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        route: '/department/procurement'
+      },
+      {
+        id: 'project-management',
+        name: 'Project Management',
+        description: 'Projects, tasks, timelines, resources',
+        icon: Briefcase,
+        color: 'bg-red-600 hover:bg-red-700',
+        textColor: 'text-red-600',
+        bgColor: 'bg-red-50',
+        route: '/department/project-management'
+      },
+      {
+        id: 'research-development',
+        name: 'Research & Development',
+        description: 'Innovation, product development, testing',
+        icon: FlaskConical,
+        color: 'bg-teal-600 hover:bg-teal-700',
+        textColor: 'text-teal-600',
+        bgColor: 'bg-teal-50',
+        route: '/department/research-development'
+      },
+      {
+        id: 'quality-assurance',
+        name: 'Quality Assurance',
+        description: 'Quality control, audits, standards',
+        icon: CheckCircle,
+        color: 'bg-lime-600 hover:bg-lime-700',
+        textColor: 'text-lime-600',
+        bgColor: 'bg-lime-50',
+        route: '/department/quality-assurance'
+      }
+    ]
   },
 
   navigation: {

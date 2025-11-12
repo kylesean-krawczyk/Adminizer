@@ -13,7 +13,10 @@ import {
   Briefcase,
   FlaskConical,
   CheckCircle,
-  GitBranch
+  GitBranch,
+  Clock,
+  AlertTriangle,
+  Heart
 } from 'lucide-react'
 import { VerticalConfig } from '../types'
 
@@ -76,6 +79,168 @@ export const churchConfig: VerticalConfig = {
     comingSoonMessage: 'is coming soon for your church. This powerful feature will help you analyze giving patterns and optimize fundraising campaigns.',
     accessRestrictedMessage: 'This area contains sensitive donor information and requires administrator privileges.',
     featureUnavailableMessage: 'is not available for churches at this time.'
+  },
+
+  dashboardConfig: {
+    title: 'Church Ministries',
+    subtitle: 'Access your ministry-specific tools and resources',
+    coreSectionTitle: 'Core Ministries',
+    additionalSectionTitle: 'Additional Ministries',
+    stats: [
+      {
+        id: 'total-documents',
+        label: 'Total Documents',
+        icon: FileText,
+        color: 'bg-blue-500',
+        metricType: 'documents'
+      },
+      {
+        id: 'member-records',
+        label: 'Member Records',
+        icon: Users,
+        color: 'bg-green-500',
+        metricType: 'categories'
+      },
+      {
+        id: 'expiring-soon',
+        label: 'Expiring Soon',
+        icon: Clock,
+        color: 'bg-yellow-500',
+        metricType: 'expiring'
+      },
+      {
+        id: 'overdue',
+        label: 'Overdue',
+        icon: AlertTriangle,
+        color: 'bg-red-500',
+        metricType: 'overdue'
+      }
+    ],
+    coreDepartments: [
+      {
+        id: 'human-resources',
+        name: 'Human Resources',
+        description: 'Staff records, onboarding, performance',
+        icon: Users,
+        color: 'bg-blue-600 hover:bg-blue-700',
+        textColor: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        route: '/department/human-resources'
+      },
+      {
+        id: 'finance-accounting',
+        name: 'Finance & Accounting',
+        description: 'Invoicing, expenses, financial reporting',
+        icon: Calculator,
+        color: 'bg-green-600 hover:bg-green-700',
+        textColor: 'text-green-600',
+        bgColor: 'bg-green-50',
+        route: '/department/finance-accounting'
+      },
+      {
+        id: 'donor-relations',
+        name: 'Donor Relations',
+        description: 'Giving analytics and donor management',
+        icon: TrendingUp,
+        color: 'bg-emerald-600 hover:bg-emerald-700',
+        textColor: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        route: '/department/sales',
+        requiredFeature: 'donor-analytics'
+      },
+      {
+        id: 'operations',
+        name: 'Operations',
+        description: 'Workflows, processes, ministry management',
+        icon: Cog,
+        color: 'bg-purple-600 hover:bg-purple-700',
+        textColor: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        route: '/department/operations'
+      },
+      {
+        id: 'member-care',
+        name: 'Member Care',
+        description: 'Member services and support',
+        icon: Heart,
+        color: 'bg-indigo-600 hover:bg-indigo-700',
+        textColor: 'text-indigo-600',
+        bgColor: 'bg-indigo-50',
+        route: '/department/customer-support'
+      }
+    ],
+    additionalDepartments: [
+      {
+        id: 'communications-marketing',
+        name: 'Communications & Marketing',
+        description: 'Outreach, content, and communications',
+        icon: Megaphone,
+        color: 'bg-pink-600 hover:bg-pink-700',
+        textColor: 'text-pink-600',
+        bgColor: 'bg-pink-50',
+        route: '/department/marketing'
+      },
+      {
+        id: 'it-technology',
+        name: 'IT & Technology',
+        description: 'Asset management, helpdesk, security',
+        icon: Monitor,
+        color: 'bg-cyan-600 hover:bg-cyan-700',
+        textColor: 'text-cyan-600',
+        bgColor: 'bg-cyan-50',
+        route: '/department/it-technology'
+      },
+      {
+        id: 'legal-compliance',
+        name: 'Legal & Compliance',
+        description: 'Contracts, policies, risk management',
+        icon: Scale,
+        color: 'bg-gray-600 hover:bg-gray-700',
+        textColor: 'text-gray-600',
+        bgColor: 'bg-gray-50',
+        route: '/department/legal-compliance'
+      },
+      {
+        id: 'procurement',
+        name: 'Procurement',
+        description: 'Vendors, purchase orders, suppliers',
+        icon: Package,
+        color: 'bg-orange-600 hover:bg-orange-700',
+        textColor: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        route: '/department/procurement'
+      },
+      {
+        id: 'project-management',
+        name: 'Project Management',
+        description: 'Projects, tasks, timelines, resources',
+        icon: Briefcase,
+        color: 'bg-red-600 hover:bg-red-700',
+        textColor: 'text-red-600',
+        bgColor: 'bg-red-50',
+        route: '/department/project-management'
+      },
+      {
+        id: 'research-development',
+        name: 'Research & Development',
+        description: 'Innovation, ministry development',
+        icon: FlaskConical,
+        color: 'bg-teal-600 hover:bg-teal-700',
+        textColor: 'text-teal-600',
+        bgColor: 'bg-teal-50',
+        route: '/department/research-development'
+      },
+      {
+        id: 'quality-assurance',
+        name: 'Quality Assurance',
+        description: 'Quality control, audits, standards',
+        icon: CheckCircle,
+        color: 'bg-lime-600 hover:bg-lime-700',
+        textColor: 'text-lime-600',
+        bgColor: 'bg-lime-50',
+        route: '/department/quality-assurance'
+      }
+    ]
   },
 
   navigation: {
