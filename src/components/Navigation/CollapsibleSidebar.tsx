@@ -263,14 +263,14 @@ const CollapsibleSidebar = () => {
               <button
                 onClick={() => isExpanded && toggleSection('admin')}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
-                  location.pathname === '/users' || location.pathname === '/oauth'
+                  location.pathname === '/users' || location.pathname === '/oauth' || location.pathname.startsWith('/settings/organization-customization')
                     ? 'text-purple-600 bg-purple-50 font-medium'
                     : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
                 title={!isExpanded ? 'Admin' : undefined}
               >
                 <div className="flex items-center gap-3">
-                  <Shield className={`h-5 w-5 flex-shrink-0 ${(location.pathname === '/users' || location.pathname === '/oauth') ? 'text-purple-600' : 'text-gray-500'}`} />
+                  <Shield className={`h-5 w-5 flex-shrink-0 ${(location.pathname === '/users' || location.pathname === '/oauth' || location.pathname.startsWith('/settings/organization-customization')) ? 'text-purple-600' : 'text-gray-500'}`} />
                   {isExpanded && <span className="text-sm font-medium">Admin</span>}
                 </div>
                 {isExpanded && (

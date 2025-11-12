@@ -16,7 +16,8 @@ import {
   GitBranch,
   Clock,
   AlertTriangle,
-  Heart
+  Heart,
+  Palette
 } from 'lucide-react'
 import { VerticalConfig } from '../types'
 
@@ -277,7 +278,8 @@ export const churchConfig: VerticalConfig = {
     ],
     adminNav: [
       { id: 'users', name: 'Users', icon: Users, route: '/users', requiredRole: 'admin' },
-      { id: 'oauth', name: 'OAuth', icon: Shield, route: '/oauth', requiredRole: 'admin' }
+      { id: 'oauth', name: 'OAuth', icon: Shield, route: '/oauth', requiredRole: 'admin' },
+      { id: 'ui-customization', name: 'UI Customization', icon: Palette, route: '/settings/organization-customization', requiredRole: 'master_admin' }
     ]
   },
 

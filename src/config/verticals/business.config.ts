@@ -15,7 +15,8 @@ import {
   CheckCircle,
   GitBranch,
   Clock,
-  FolderOpen
+  FolderOpen,
+  Palette
 } from 'lucide-react'
 import { VerticalConfig } from '../types'
 
@@ -275,7 +276,8 @@ export const businessConfig: VerticalConfig = {
     ],
     adminNav: [
       { id: 'users', name: 'Users', icon: Users, route: '/users', requiredRole: 'admin' },
-      { id: 'oauth', name: 'OAuth', icon: Shield, route: '/oauth', requiredRole: 'admin' }
+      { id: 'oauth', name: 'OAuth', icon: Shield, route: '/oauth', requiredRole: 'admin' },
+      { id: 'ui-customization', name: 'UI Customization', icon: Palette, route: '/settings/organization-customization', requiredRole: 'master_admin' }
     ]
   },
 

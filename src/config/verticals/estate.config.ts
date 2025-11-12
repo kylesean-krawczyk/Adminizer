@@ -11,7 +11,8 @@ import {
   Lock,
   GitBranch,
   FileText,
-  FolderCheck
+  FolderCheck,
+  Palette
 } from 'lucide-react'
 import { VerticalConfig } from '../types'
 
@@ -220,7 +221,8 @@ export const estateConfig: VerticalConfig = {
       { id: 'vault-security', name: 'Vault Security', icon: Shield, route: '/operations/legal' }
     ],
     adminNav: [
-      { id: 'beneficiaries', name: 'Beneficiaries', icon: Users, route: '/users', requiredRole: 'admin' }
+      { id: 'beneficiaries', name: 'Beneficiaries', icon: Users, route: '/users', requiredRole: 'admin' },
+      { id: 'ui-customization', name: 'UI Customization', icon: Palette, route: '/settings/organization-customization', requiredRole: 'master_admin' }
     ]
   },
 
