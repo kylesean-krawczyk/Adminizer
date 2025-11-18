@@ -80,13 +80,13 @@ export class ContextTrackingService {
 
       if (error) {
         const trackingError = error as TrackingError;
-        console.error('[ContextTracking] Database error:', {
+        console.warn('[ContextTracking] Database error (non-critical):', {
           code: trackingError.code,
           message: trackingError.message,
           details: trackingError.details,
           hint: trackingError.hint
         });
-        throw error;
+        return null;
       }
 
       if (!data) {
@@ -133,11 +133,11 @@ export class ContextTrackingService {
 
       if (error) {
         const trackingError = error as TrackingError;
-        console.error('[ContextTracking] Error fetching recent context:', {
+        console.warn('[ContextTracking] Error fetching recent context (non-critical):', {
           code: trackingError.code,
           message: trackingError.message
         });
-        throw error;
+        return [];
       }
 
       console.log(`[ContextTracking] Retrieved ${data?.length || 0} recent contexts for user ${userId}`);
@@ -174,12 +174,12 @@ export class ContextTrackingService {
 
       if (error) {
         const trackingError = error as TrackingError;
-        console.error('[ContextTracking] Error fetching current page context:', {
+        console.warn('[ContextTracking] Error fetching current page context (non-critical):', {
           code: trackingError.code,
           message: trackingError.message,
           pageType
         });
-        throw error;
+        return null;
       }
 
       if (data) {
@@ -212,11 +212,11 @@ export class ContextTrackingService {
 
       if (error) {
         const trackingError = error as TrackingError;
-        console.error('[ContextTracking] Error during cleanup:', {
+        console.warn('[ContextTracking] Error during cleanup (non-critical):', {
           code: trackingError.code,
           message: trackingError.message
         });
-        throw error;
+        return false;
       }
 
       console.log(`[ContextTracking] Cleaned up ${count || 0} old context entries`);

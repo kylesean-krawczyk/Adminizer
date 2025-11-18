@@ -16,6 +16,12 @@ const OrganizationCustomizationPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'stats' | 'departments' | 'branding' | 'history'>('dashboard')
 
+  console.log('[OrganizationCustomizationPage] Render state:', {
+    userProfile: userProfile ? { id: userProfile.id, role: userProfile.role, email: userProfile.email } : null,
+    organization: organization ? { id: organization.id, name: organization.name } : null,
+    userLoading
+  })
+
   // CRITICAL: All hooks must be called before any conditional returns
   // This prevents React Error #310: "Rendered more hooks than during the previous render"
   const {
@@ -24,6 +30,7 @@ const OrganizationCustomizationPage: React.FC = () => {
     loading,
     saving,
     hasUnsavedChanges,
+    error: customizationError,
     updateDraft,
     save,
     resetToDefaults,
@@ -37,12 +44,24 @@ const OrganizationCustomizationPage: React.FC = () => {
     initialVerticalId: (userProfile?.active_vertical as VerticalId) || 'church'
   })
 
+  console.log('[OrganizationCustomizationPage] Customization state:', {
+    selectedVertical,
+    loading,
+    saving,
+    hasUnsavedChanges,
+    customizationError,
+    hasDraft: !!draft,
+    draftKeys: Object.keys(draft)
+  })
+
   // Show loading state while user data is being fetched
   if (userLoading) {
+    console.log('[OrganizationCustomizationPage] Showing user loading state')
     return (
       <div className="max-w-7xl mx-auto p-8">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="ml-4 text-gray-600">Loading user profile...</p>
         </div>
       </div>
     )
@@ -50,6 +69,11 @@ const OrganizationCustomizationPage: React.FC = () => {
 
   // Check permissions AFTER all hooks have been called
   if (!userProfile || !organization || userProfile.role !== 'master_admin') {
+    console.log('[OrganizationCustomizationPage] Access denied:', {
+      hasUserProfile: !!userProfile,
+      hasOrganization: !!organization,
+      userRole: userProfile?.role
+    })
     return (
       <div className="max-w-4xl mx-auto p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -147,14 +171,42 @@ const OrganizationCustomizationPage: React.FC = () => {
   }, [hasUnsavedChanges])
 
   if (loading) {
+    console.log('[OrganizationCustomizationPage] Showing customization loading state')
     return (
       <div className="max-w-7xl mx-auto p-8">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="ml-4 text-gray-600">Loading customization settings...</p>
         </div>
       </div>
     )
   }
+
+  // Show error message if there was an error loading customization
+  if (customizationError) {
+    console.error('[OrganizationCustomizationPage] Customization error:', customizationError)
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900 mb-1">Error Loading Customization</h3>
+              <p className="text-yellow-700 mb-4">{customizationError}</p>
+              <button
+                onClick={() => refresh()}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  console.log('[OrganizationCustomizationPage] Rendering main content')
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard' },

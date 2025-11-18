@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { PageContextProvider } from './contexts/PageContextContext'
 import { isDemoMode } from './lib/demo'
 import AuthGuard from './components/Auth/AuthGuard'
+import ErrorBoundary from './components/ErrorBoundary'
 import Dashboard from './components/Dashboard'
 import DocumentList from './components/DocumentList'
 import DocumentUpload from './components/DocumentUpload'
@@ -74,7 +75,11 @@ function App() {
                         <Route path="/settings/theme" element={<ThemePreview />} />
                         <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
                         <Route path="/settings/vertical" element={<VerticalConfigurationSettings />} />
-                        <Route path="/settings/organization-customization" element={<OrganizationCustomizationPage />} />
+                        <Route path="/settings/organization-customization" element={
+                          <ErrorBoundary fallbackMessage="The UI Customization page encountered an error. Please refresh or contact support if the problem persists.">
+                            <OrganizationCustomizationPage />
+                          </ErrorBoundary>
+                        } />
                         <Route path="/dev/tool-registry" element={<ToolRegistryPanel />} />
                         <Route path="/dev/tool-logs" element={<ToolExecutionLogs />} />
                         <Route path="/workflows" element={<WorkflowListPage />} />
