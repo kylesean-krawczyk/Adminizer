@@ -54,6 +54,20 @@ const OrganizationCustomizationPage: React.FC = () => {
     draftKeys: Object.keys(draft)
   })
 
+  // CRITICAL: useEffect must be called BEFORE any conditional returns
+  // This prevents React Error #310: "Rendered more hooks than during the previous render"
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
   // Show loading state while user data is being fetched
   if (userLoading) {
     console.log('[OrganizationCustomizationPage] Showing user loading state')
@@ -157,18 +171,6 @@ const OrganizationCustomizationPage: React.FC = () => {
       e.target.value = selectedVertical
     }
   }
-
-  React.useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
 
   if (loading) {
     console.log('[OrganizationCustomizationPage] Showing customization loading state')
