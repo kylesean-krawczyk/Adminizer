@@ -4,6 +4,7 @@ import { Save, RotateCcw, Download, Upload, AlertCircle } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
 import { useOrganizationCustomization } from '../../hooks/useOrganizationCustomization'
 import { VerticalId } from '../../config/types'
+import { useVertical } from '../../contexts/VerticalContext'
 import DashboardCustomizationTab from './Customization/DashboardCustomizationTab'
 import StatsCustomizationTab from './Customization/StatsCustomizationTab'
 import DepartmentCustomizationTab from './Customization/DepartmentCustomizationTab'
@@ -13,6 +14,7 @@ import VersionHistoryPanel from './Customization/VersionHistoryPanel'
 const OrganizationCustomizationPage: React.FC = () => {
   const navigate = useNavigate()
   const { userProfile, organization, loading: userLoading } = useUserManagement()
+  const { refreshVertical } = useVertical()
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'stats' | 'departments' | 'branding' | 'history'>('dashboard')
 
@@ -114,9 +116,15 @@ const OrganizationCustomizationPage: React.FC = () => {
   const handleSave = async () => {
     try {
       await save('Updated customization settings')
-      alert('Customization saved successfully!')
+
+      console.log('[OrganizationCustomizationPage] Customization saved, refreshing vertical context...')
+      await refreshVertical()
+      console.log('[OrganizationCustomizationPage] Vertical context refreshed')
+
+      alert('Customization saved successfully! Changes are now visible on the dashboard.')
       refresh()
     } catch (error) {
+      console.error('[OrganizationCustomizationPage] Error saving customization:', error)
       alert('Failed to save customization')
     }
   }

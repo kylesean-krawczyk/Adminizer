@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { VerticalConfig, VerticalId, getVerticalConfig, initializeVerticalConfigs } from '../config'
 import { supabase } from '../lib/supabase'
 import { isDemoMode } from '../lib/demo'
+import { getCustomizationForVertical, applyCustomizationToVerticalConfig } from '../services/organizationCustomizationService'
 
 interface VerticalContextType {
   vertical: VerticalConfig
@@ -11,6 +12,7 @@ interface VerticalContextType {
   getTerm: (key: string, fallback?: string) => string
   hasFeature: (featureId: string) => boolean
   refreshVertical: () => Promise<void>
+  customizationLoaded: boolean
 }
 
 const VerticalContext = createContext<VerticalContextType | undefined>(undefined)
@@ -24,11 +26,61 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
   const [vertical, setVertical] = useState<VerticalConfig>(getVerticalConfig('church'))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [customizationLoaded, setCustomizationLoaded] = useState(false)
+
+  const applyCustomizations = async (
+    baseConfig: VerticalConfig,
+    organizationId: string | null,
+    verticalIdToLoad: VerticalId
+  ): Promise<VerticalConfig> => {
+    if (!organizationId) {
+      return baseConfig
+    }
+
+    try {
+      const customization = await getCustomizationForVertical(organizationId, verticalIdToLoad)
+
+      if (!customization) {
+        console.log(`[VerticalContext] No customization found for ${verticalIdToLoad}, using defaults`)
+        return baseConfig
+      }
+
+      console.log(`[VerticalContext] Applying customizations for ${verticalIdToLoad}:`, {
+        dashboard_config: customization.dashboard_config,
+        stats_config: customization.stats_config,
+        department_config: customization.department_config,
+        branding_config: customization.branding_config
+      })
+
+      const customizedConfig = { ...baseConfig }
+
+      if (customization.dashboard_config && Object.keys(customization.dashboard_config).length > 0) {
+        customizedConfig.dashboardConfig = applyCustomizationToVerticalConfig(
+          baseConfig.dashboardConfig,
+          customization.dashboard_config
+        )
+        console.log(`[VerticalContext] Dashboard config after customization:`, customizedConfig.dashboardConfig)
+      }
+
+      if (customization.branding_config && Object.keys(customization.branding_config).length > 0) {
+        customizedConfig.branding = applyCustomizationToVerticalConfig(
+          baseConfig.branding,
+          customization.branding_config
+        )
+      }
+
+      return customizedConfig
+    } catch (err) {
+      console.error('[VerticalContext] Error applying customizations:', err)
+      return baseConfig
+    }
+  }
 
   const loadVerticalFromOrganization = async () => {
     try {
       setLoading(true)
       setError(null)
+      setCustomizationLoaded(false)
 
       if (isDemoMode) {
         const storedVertical = localStorage.getItem('demo_vertical') as VerticalId
@@ -38,6 +90,7 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
         const config = getVerticalConfig(demoVertical)
         setVerticalId(demoVertical)
         setVertical(config)
+        setCustomizationLoaded(true)
         setLoading(false)
         return
       }
@@ -49,6 +102,7 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
         const config = getVerticalConfig(defaultVertical)
         setVerticalId(defaultVertical)
         setVertical(config)
+        setCustomizationLoaded(true)
         setLoading(false)
         return
       }
@@ -65,6 +119,7 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
         const config = getVerticalConfig(defaultVertical)
         setVerticalId(defaultVertical)
         setVertical(config)
+        setCustomizationLoaded(true)
         setLoading(false)
         return
       }
@@ -74,11 +129,13 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
         const config = getVerticalConfig(defaultVertical)
         setVerticalId(defaultVertical)
         setVertical(config)
+        setCustomizationLoaded(true)
         setLoading(false)
         return
       }
 
       let userVertical = (userProfile.active_vertical as VerticalId) || 'church'
+      let organizationId: string | null = userProfile.organization_id
 
       if (userProfile.organization_id) {
         try {
@@ -94,7 +151,6 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
               message: orgError.message,
               orgId: userProfile.organization_id
             })
-            // Continue with user's active vertical even if org settings can't be loaded
           } else if (organization?.enabled_verticals && Array.isArray(organization.enabled_verticals)) {
             const enabledVerticals = organization.enabled_verticals as VerticalId[]
             if (enabledVerticals.length > 0 && !enabledVerticals.includes(userVertical)) {
@@ -118,13 +174,15 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
             error: orgErr instanceof Error ? orgErr.message : 'Unknown error',
             orgId: userProfile.organization_id
           })
-          // Continue with default vertical
         }
       }
 
-      const config = getVerticalConfig(userVertical)
+      const baseConfig = getVerticalConfig(userVertical)
+      const customizedConfig = await applyCustomizations(baseConfig, organizationId, userVertical)
+
       setVerticalId(userVertical)
-      setVertical(config)
+      setVertical(customizedConfig)
+      setCustomizationLoaded(true)
       setLoading(false)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -165,7 +223,8 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
     error,
     getTerm,
     hasFeature,
-    refreshVertical
+    refreshVertical,
+    customizationLoaded
   }
 
   if (loading) {

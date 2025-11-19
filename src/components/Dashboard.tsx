@@ -34,11 +34,24 @@ const Dashboard = () => {
   } = useVerticalDashboard()
   const { term } = useTerminology()
   const navigate = useNavigate()
-  const { vertical } = useVertical()
+  const { vertical, customizationLoaded } = useVertical()
   const { updateContext } = usePageContext()
 
   const loading = documentsLoading || userLoading
   const versionInfo = getVersionInfo()
+
+  // Debug logging for customization state
+  useEffect(() => {
+    if (customizationLoaded) {
+      console.log('[Dashboard] Customization loaded. Dashboard config:', {
+        title: dashboardTitle,
+        subtitle: dashboardSubtitle,
+        statsCount: dashboardStats.length,
+        coreDepartmentsCount: coreDepartments.length,
+        additionalDepartmentsCount: additionalDepartments.length
+      })
+    }
+  }, [customizationLoaded, dashboardTitle, dashboardSubtitle, dashboardStats, coreDepartments, additionalDepartments])
 
   // Show loading card with retry progress
   if (userLoading && recoveryState.isRecovering) {

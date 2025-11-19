@@ -452,3 +452,31 @@ export const importCustomization = async (
     throw new Error('Invalid JSON data')
   }
 }
+
+export const applyCustomizationToVerticalConfig = <T extends Record<string, any>>(
+  baseConfig: T,
+  customization: Record<string, any> | null | undefined
+): T => {
+  if (!customization || Object.keys(customization).length === 0) {
+    return baseConfig
+  }
+
+  const merged = { ...baseConfig }
+
+  Object.keys(customization).forEach(key => {
+    const customValue = customization[key]
+
+    if (customValue !== null && customValue !== undefined && customValue !== '') {
+      if (typeof customValue === 'object' && !Array.isArray(customValue) && customValue !== null) {
+        merged[key as keyof T] = {
+          ...(merged[key as keyof T] as any),
+          ...customValue
+        } as T[keyof T]
+      } else {
+        merged[key as keyof T] = customValue as T[keyof T]
+      }
+    }
+  })
+
+  return merged
+}
