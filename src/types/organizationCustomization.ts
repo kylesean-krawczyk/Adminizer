@@ -53,14 +53,20 @@ export interface BrandingCustomization {
 }
 
 export interface StatsCustomization {
-  cards?: Array<Partial<DashboardStatCard> & { visible?: boolean; order?: number }>
+  cards?: Array<Partial<DashboardStatCard> & { visible?: boolean; order?: number; label?: string }>
 }
 
 export interface DepartmentCustomization {
-  departments?: Array<Partial<DepartmentButton> & { visible?: boolean; order?: number }>
+  departments?: Array<Partial<DepartmentButton> & { visible?: boolean; order?: number; name?: string; description?: string }>
   coreSectionTitle?: string
   additionalSectionTitle?: string
 }
+
+export const CUSTOMIZATION_LIMITS = {
+  STAT_LABEL_MAX_LENGTH: 50,
+  DEPARTMENT_NAME_MAX_LENGTH: 100,
+  DEPARTMENT_DESCRIPTION_MAX_LENGTH: 200
+} as const
 
 export interface OrganizationCustomization {
   id: string

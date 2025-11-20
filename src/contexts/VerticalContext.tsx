@@ -69,6 +69,64 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
         )
       }
 
+      if (customization.stats_config?.cards && customization.stats_config.cards.length > 0) {
+        customizedConfig.dashboardConfig = {
+          ...customizedConfig.dashboardConfig,
+          stats: customizedConfig.dashboardConfig.stats.map(stat => {
+            const customCard = customization.stats_config.cards?.find(c => c.id === stat.id)
+            if (customCard) {
+              return {
+                ...stat,
+                ...(customCard.label ? { label: customCard.label } : {})
+              }
+            }
+            return stat
+          }).filter(stat => {
+            const customCard = customization.stats_config.cards?.find(c => c.id === stat.id)
+            return customCard?.visible !== false
+          })
+        }
+        console.log(`[VerticalContext] Stats after customization:`, customizedConfig.dashboardConfig.stats)
+      }
+
+      if (customization.department_config?.departments && customization.department_config.departments.length > 0) {
+        customizedConfig.dashboardConfig = {
+          ...customizedConfig.dashboardConfig,
+          coreDepartments: customizedConfig.dashboardConfig.coreDepartments.map(dept => {
+            const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
+            if (customDept) {
+              return {
+                ...dept,
+                ...(customDept.name ? { name: customDept.name } : {}),
+                ...(customDept.description ? { description: customDept.description } : {})
+              }
+            }
+            return dept
+          }).filter(dept => {
+            const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
+            return customDept?.visible !== false
+          }),
+          additionalDepartments: customizedConfig.dashboardConfig.additionalDepartments.map(dept => {
+            const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
+            if (customDept) {
+              return {
+                ...dept,
+                ...(customDept.name ? { name: customDept.name } : {}),
+                ...(customDept.description ? { description: customDept.description } : {})
+              }
+            }
+            return dept
+          }).filter(dept => {
+            const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
+            return customDept?.visible !== false
+          })
+        }
+        console.log(`[VerticalContext] Departments after customization:`, {
+          core: customizedConfig.dashboardConfig.coreDepartments,
+          additional: customizedConfig.dashboardConfig.additionalDepartments
+        })
+      }
+
       return customizedConfig
     } catch (err) {
       console.error('[VerticalContext] Error applying customizations:', err)
