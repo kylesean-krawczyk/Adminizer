@@ -70,6 +70,8 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       }
 
       if (customization.stats_config?.cards && customization.stats_config.cards.length > 0) {
+        console.log(`[VerticalContext] Applying stats customizations:`, customization.stats_config.cards)
+
         customizedConfig.dashboardConfig = {
           ...customizedConfig.dashboardConfig,
           stats: customizedConfig.dashboardConfig.stats.map(stat => {
@@ -83,18 +85,33 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
             return stat
           }).filter(stat => {
             const customCard = customization.stats_config.cards?.find(c => c.id === stat.id)
-            return customCard?.visible !== false
+            // Keep stat card if:
+            // - No customization exists for this stat (default visible)
+            // - Customization exists but visible is not explicitly false
+            const shouldShow = !customCard || customCard.visible !== false
+            if (!shouldShow) {
+              console.log(`[VerticalContext] Hiding stat card: ${stat.id}`)
+            }
+            return shouldShow
           })
         }
         console.log(`[VerticalContext] Stats after customization:`, customizedConfig.dashboardConfig.stats)
       }
 
       if (customization.department_config?.departments && customization.department_config.departments.length > 0) {
+        console.log(`[VerticalContext] Applying department customizations:`, customization.department_config.departments)
+
         customizedConfig.dashboardConfig = {
           ...customizedConfig.dashboardConfig,
           coreDepartments: customizedConfig.dashboardConfig.coreDepartments.map(dept => {
             const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
             if (customDept) {
+              console.log(`[VerticalContext] Customizing core department ${dept.id}:`, {
+                originalName: dept.name,
+                customName: customDept.name || dept.name,
+                originalDesc: dept.description,
+                customDesc: customDept.description || dept.description
+              })
               return {
                 ...dept,
                 ...(customDept.name ? { name: customDept.name } : {}),
@@ -104,11 +121,24 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
             return dept
           }).filter(dept => {
             const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
-            return customDept?.visible !== false
+            // Keep department if:
+            // - No customization exists for this department (default visible)
+            // - Customization exists but visible is not explicitly false
+            const shouldShow = !customDept || customDept.visible !== false
+            if (!shouldShow) {
+              console.log(`[VerticalContext] Hiding core department: ${dept.id} (${dept.name})`)
+            }
+            return shouldShow
           }),
           additionalDepartments: customizedConfig.dashboardConfig.additionalDepartments.map(dept => {
             const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
             if (customDept) {
+              console.log(`[VerticalContext] Customizing additional department ${dept.id}:`, {
+                originalName: dept.name,
+                customName: customDept.name || dept.name,
+                originalDesc: dept.description,
+                customDesc: customDept.description || dept.description
+              })
               return {
                 ...dept,
                 ...(customDept.name ? { name: customDept.name } : {}),
@@ -118,7 +148,14 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
             return dept
           }).filter(dept => {
             const customDept = customization.department_config.departments?.find(d => d.id === dept.id)
-            return customDept?.visible !== false
+            // Keep department if:
+            // - No customization exists for this department (default visible)
+            // - Customization exists but visible is not explicitly false
+            const shouldShow = !customDept || customDept.visible !== false
+            if (!shouldShow) {
+              console.log(`[VerticalContext] Hiding additional department: ${dept.id} (${dept.name})`)
+            }
+            return shouldShow
           })
         }
         console.log(`[VerticalContext] Departments after customization:`, {
