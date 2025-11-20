@@ -65,6 +65,14 @@ const CollapsibleSidebar = () => {
   const operationsCategories = vertical.navigation.operationsNav || []
   const adminItems = vertical.navigation.adminNav || []
 
+  // Debug logging to verify customized department names are received
+  useEffect(() => {
+    console.log('[CollapsibleSidebar] Navigation departments received:', {
+      coreDepartments: coreDepartments.map(d => ({ id: d.id, name: d.name })),
+      moreDepartments: moreDepartments.map(d => ({ id: d.id, name: d.name }))
+    })
+  }, [coreDepartments, moreDepartments])
+
   const hasRoleAccess = (requiredRole?: string): boolean => {
     if (!requiredRole) return true
     if (!userProfile) return false

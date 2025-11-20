@@ -187,22 +187,93 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
             description: d.description
           }))
         })
+
+        console.log(`[VerticalContext] Applying same customizations to navigation.departmentNav for sidebar...`)
+
+        customizedConfig.navigation = {
+          ...customizedConfig.navigation,
+          departmentNav: customizedConfig.navigation.departmentNav.map(navItem => {
+            const customDept = customization.department_config.departments?.find(d => d.id === navItem.id)
+            if (customDept) {
+              console.log(`[VerticalContext] Customizing navigation item ${navItem.id}:`, {
+                originalName: navItem.name,
+                customName: customDept.name || navItem.name
+              })
+              return {
+                ...navItem,
+                ...(customDept.name ? { name: customDept.name } : {})
+              }
+            }
+            return navItem
+          }).filter(navItem => {
+            const customDept = customization.department_config.departments?.find(d => d.id === navItem.id)
+            const shouldShow = !customDept || customDept.visible !== false
+            if (!shouldShow) {
+              console.log(`[VerticalContext] Hiding navigation item: ${navItem.id} (${navItem.name})`)
+            }
+            return shouldShow
+          }),
+          additionalDepartments: customizedConfig.navigation.additionalDepartments.map(navItem => {
+            const customDept = customization.department_config.departments?.find(d => d.id === navItem.id)
+            if (customDept) {
+              console.log(`[VerticalContext] Customizing additional navigation item ${navItem.id}:`, {
+                originalName: navItem.name,
+                customName: customDept.name || navItem.name
+              })
+              return {
+                ...navItem,
+                ...(customDept.name ? { name: customDept.name } : {})
+              }
+            }
+            return navItem
+          }).filter(navItem => {
+            const customDept = customization.department_config.departments?.find(d => d.id === navItem.id)
+            const shouldShow = !customDept || customDept.visible !== false
+            if (!shouldShow) {
+              console.log(`[VerticalContext] Hiding additional navigation item: ${navItem.id} (${navItem.name})`)
+            }
+            return shouldShow
+          })
+        }
+
+        console.log(`[VerticalContext] Navigation after customization:`, {
+          departmentNav: customizedConfig.navigation.departmentNav.map(n => ({
+            id: n.id,
+            name: n.name
+          })),
+          additionalDepartments: customizedConfig.navigation.additionalDepartments.map(n => ({
+            id: n.id,
+            name: n.name
+          }))
+        })
       }
 
       console.log(`[VerticalContext] ===== FINAL CUSTOMIZED CONFIG =====`, {
         verticalId: verticalIdToLoad,
-        coreDepartmentsCount: customizedConfig.dashboardConfig.coreDepartments.length,
-        additionalDepartmentsCount: customizedConfig.dashboardConfig.additionalDepartments.length,
-        coreDepartments: customizedConfig.dashboardConfig.coreDepartments.map(d => ({
-          id: d.id,
-          name: d.name,
-          description: d.description
-        })),
-        additionalDepartments: customizedConfig.dashboardConfig.additionalDepartments.map(d => ({
-          id: d.id,
-          name: d.name,
-          description: d.description
-        }))
+        dashboard: {
+          coreDepartmentsCount: customizedConfig.dashboardConfig.coreDepartments.length,
+          additionalDepartmentsCount: customizedConfig.dashboardConfig.additionalDepartments.length,
+          coreDepartments: customizedConfig.dashboardConfig.coreDepartments.map(d => ({
+            id: d.id,
+            name: d.name
+          })),
+          additionalDepartments: customizedConfig.dashboardConfig.additionalDepartments.map(d => ({
+            id: d.id,
+            name: d.name
+          }))
+        },
+        navigation: {
+          departmentNavCount: customizedConfig.navigation.departmentNav.length,
+          additionalDepartmentsCount: customizedConfig.navigation.additionalDepartments.length,
+          departmentNav: customizedConfig.navigation.departmentNav.map(n => ({
+            id: n.id,
+            name: n.name
+          })),
+          additionalDepartments: customizedConfig.navigation.additionalDepartments.map(n => ({
+            id: n.id,
+            name: n.name
+          }))
+        }
       })
 
       return customizedConfig
