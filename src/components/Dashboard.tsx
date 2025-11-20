@@ -48,7 +48,17 @@ const Dashboard = () => {
         subtitle: dashboardSubtitle,
         statsCount: dashboardStats.length,
         coreDepartmentsCount: coreDepartments.length,
-        additionalDepartmentsCount: additionalDepartments.length
+        additionalDepartmentsCount: additionalDepartments.length,
+        coreDepartments: coreDepartments.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description
+        })),
+        additionalDepartments: additionalDepartments.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description
+        }))
       })
     }
   }, [customizationLoaded, dashboardTitle, dashboardSubtitle, dashboardStats, coreDepartments, additionalDepartments])

@@ -46,10 +46,27 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       }
 
       console.log(`[VerticalContext] Applying customizations for ${verticalIdToLoad}:`, {
+        customization_id: customization.id,
+        version: customization.version,
+        updated_at: customization.updated_at,
         dashboard_config: customization.dashboard_config,
         stats_config: customization.stats_config,
         department_config: customization.department_config,
+        department_config_departments: customization.department_config?.departments,
         branding_config: customization.branding_config
+      })
+
+      console.log(`[VerticalContext] Base config departments BEFORE customization:`, {
+        coreDepartments: baseConfig.dashboardConfig.coreDepartments.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description
+        })),
+        additionalDepartments: baseConfig.dashboardConfig.additionalDepartments.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description
+        }))
       })
 
       const customizedConfig = { ...baseConfig }
@@ -159,10 +176,34 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
           })
         }
         console.log(`[VerticalContext] Departments after customization:`, {
-          core: customizedConfig.dashboardConfig.coreDepartments,
-          additional: customizedConfig.dashboardConfig.additionalDepartments
+          core: customizedConfig.dashboardConfig.coreDepartments.map(d => ({
+            id: d.id,
+            name: d.name,
+            description: d.description
+          })),
+          additional: customizedConfig.dashboardConfig.additionalDepartments.map(d => ({
+            id: d.id,
+            name: d.name,
+            description: d.description
+          }))
         })
       }
+
+      console.log(`[VerticalContext] ===== FINAL CUSTOMIZED CONFIG =====`, {
+        verticalId: verticalIdToLoad,
+        coreDepartmentsCount: customizedConfig.dashboardConfig.coreDepartments.length,
+        additionalDepartmentsCount: customizedConfig.dashboardConfig.additionalDepartments.length,
+        coreDepartments: customizedConfig.dashboardConfig.coreDepartments.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description
+        })),
+        additionalDepartments: customizedConfig.dashboardConfig.additionalDepartments.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description
+        }))
+      })
 
       return customizedConfig
     } catch (err) {
@@ -308,7 +349,16 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
   }
 
   const refreshVertical = async () => {
-    await loadVerticalFromOrganization()
+    console.log('[VerticalContext] refreshVertical called - reloading configuration from database')
+    try {
+      setLoading(true)
+      setCustomizationLoaded(false)
+      await loadVerticalFromOrganization()
+      console.log('[VerticalContext] refreshVertical complete - configuration reloaded')
+    } catch (err) {
+      console.error('[VerticalContext] Error in refreshVertical:', err)
+      throw err
+    }
   }
 
   const value: VerticalContextType = {

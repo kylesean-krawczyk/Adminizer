@@ -17,6 +17,12 @@ export const getCustomizationForVertical = async (
   verticalId: VerticalId
 ): Promise<OrganizationCustomization | null> => {
   try {
+    console.log('[getCustomizationForVertical] Fetching customization:', {
+      organizationId,
+      verticalId,
+      timestamp: new Date().toISOString()
+    })
+
     const { data, error } = await supabase
       .from('organization_ui_customizations')
       .select('*')
@@ -26,13 +32,27 @@ export const getCustomizationForVertical = async (
       .maybeSingle()
 
     if (error) {
-      console.error('Error fetching customization:', error)
+      console.error('[getCustomizationForVertical] Error fetching customization:', error)
       throw error
+    }
+
+    if (data) {
+      console.log('[getCustomizationForVertical] Successfully fetched customization:', {
+        id: data.id,
+        version: data.version,
+        updated_at: data.updated_at,
+        has_dashboard_config: !!data.dashboard_config,
+        has_department_config: !!data.department_config,
+        department_config_structure: data.department_config,
+        departments_count: data.department_config?.departments?.length || 0
+      })
+    } else {
+      console.log('[getCustomizationForVertical] No customization found for vertical:', verticalId)
     }
 
     return data
   } catch (error) {
-    console.error('Error in getCustomizationForVertical:', error)
+    console.error('[getCustomizationForVertical] Caught error:', error)
     return null
   }
 }
@@ -43,6 +63,15 @@ export const saveCustomization = async (
   const { organizationId, verticalId, customization, changeDescription, changeNote } = params
 
   try {
+    console.log('[saveCustomization] Saving customization:', {
+      organizationId,
+      verticalId,
+      customization,
+      department_config: customization.department_config,
+      departments: customization.department_config?.departments,
+      timestamp: new Date().toISOString()
+    })
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       throw new Error('User not authenticated')
@@ -54,6 +83,17 @@ export const saveCustomization = async (
 
     if (existingCustomization) {
       const newVersion = existingCustomization.version + 1
+
+      console.log('[saveCustomization] Updating existing customization:', {
+        existingId: existingCustomization.id,
+        oldVersion: existingCustomization.version,
+        newVersion,
+        updatePayload: {
+          ...customization,
+          version: newVersion,
+          updated_by: user.id
+        }
+      })
 
       const { data, error } = await supabase
         .from('organization_ui_customizations')
@@ -68,9 +108,15 @@ export const saveCustomization = async (
         .single()
 
       if (error) {
-        console.error('Error updating customization:', error)
+        console.error('[saveCustomization] Error updating customization:', error)
         throw error
       }
+
+      console.log('[saveCustomization] Successfully updated customization:', {
+        id: data.id,
+        version: data.version,
+        department_config: data.department_config
+      })
 
       savedCustomization = data
 

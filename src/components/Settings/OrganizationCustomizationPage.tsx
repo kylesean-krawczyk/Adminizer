@@ -115,17 +115,33 @@ const OrganizationCustomizationPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      await save('Updated customization settings')
+      console.log('[OrganizationCustomizationPage] Starting save operation...')
+      const savedCustomization = await save('Updated customization settings')
+      console.log('[OrganizationCustomizationPage] Customization saved to database:', savedCustomization)
 
-      console.log('[OrganizationCustomizationPage] Customization saved, refreshing vertical context...')
+      console.log('[OrganizationCustomizationPage] Refreshing vertical context to load new customizations...')
       await refreshVertical()
-      console.log('[OrganizationCustomizationPage] Vertical context refreshed')
+      console.log('[OrganizationCustomizationPage] Vertical context refreshed successfully')
 
-      alert('Customization saved successfully! Changes are now visible on the dashboard.')
+      console.log('[OrganizationCustomizationPage] Refreshing customization hook state...')
       refresh()
+
+      const shouldReload = window.confirm(
+        'Customization saved successfully!\n\n' +
+        'Click OK to reload the page and see your changes immediately, or Cancel to continue editing.\n\n' +
+        'Note: Changes will be visible when you navigate to the dashboard.'
+      )
+
+      if (shouldReload) {
+        console.log('[OrganizationCustomizationPage] User chose to reload page')
+        window.location.reload()
+      } else {
+        console.log('[OrganizationCustomizationPage] User chose to continue without reload')
+        alert('Changes saved! Navigate to the dashboard to see your customizations.')
+      }
     } catch (error) {
       console.error('[OrganizationCustomizationPage] Error saving customization:', error)
-      alert('Failed to save customization')
+      alert(`Failed to save customization: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
