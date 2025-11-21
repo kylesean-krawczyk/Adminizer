@@ -13,7 +13,8 @@ import {
   moveDepartmentToSection,
   reorderWithinSection,
   resetDepartmentAssignments,
-  saveDepartmentAssignment
+  saveDepartmentAssignment,
+  TableMissingError
 } from '../services/departmentAssignmentService'
 import { useVertical } from '../contexts/VerticalContext'
 
@@ -46,6 +47,15 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
   // Store previous state for rollback on error
   const previousStateRef = useRef<DepartmentSectionAssignment[]>([])
 
+  // Track fetch attempts to prevent infinite loop
+  const fetchAttemptedRef = useRef(false)
+
+  // Stable ref for onError callback to avoid dependency issues
+  const onErrorRef = useRef(onError)
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
+
   /**
    * Loads department assignments from database
    */
@@ -55,45 +65,81 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
       return
     }
 
+    // Check sessionStorage cache for table missing status
+    const cacheKey = `dept_table_missing_${organizationId}_${verticalId}`
+    const cached = sessionStorage.getItem(cacheKey)
+
+    if (cached && fetchAttemptedRef.current) {
+      console.log('[useDepartmentDragDrop] Table known to be missing (cached) - using fallback mode')
+      setUseFallbackMode(true)
+      setMigrationWarning('Database table is missing. If migration was applied, click "Check Again".')
+      setAssignments([])
+      setLoading(false)
+      return
+    }
+
+    // Prevent repeated fetch attempts in fallback mode
+    if (fetchAttemptedRef.current && useFallbackMode) {
+      console.log('[useDepartmentDragDrop] Already in fallback mode - skipping fetch')
+      setLoading(false)
+      return
+    }
+
+    fetchAttemptedRef.current = true
+
     try {
       setLoading(true)
       setError(null)
-      setUseFallbackMode(false)
-      setMigrationWarning(null)
 
       const data = await getDepartmentAssignments(organizationId, verticalId)
 
       console.log('[useDepartmentDragDrop] Loaded assignments:', data.length)
       setAssignments(data)
       previousStateRef.current = [...data]
+      setUseFallbackMode(false)
+      setMigrationWarning(null)
 
-      // Check if we're in fallback mode (table doesn't exist or schema cache issue)
-      if (data.length === 0) {
-        // Empty could mean:
-        // 1. Table exists but no assignments yet (normal)
-        // 2. Table doesn't exist (fallback mode)
-        // The service layer handles this gracefully by returning []
-        console.log('[useDepartmentDragDrop] No assignments found - will use vertical config defaults')
-      }
+      // Clear cache if fetch succeeds
+      sessionStorage.removeItem(cacheKey)
     } catch (err) {
       console.error('[useDepartmentDragDrop] Load error:', err)
 
       // Check if it's a table missing error
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load assignments'
-
-      if (errorMessage.includes('PGRST205') || errorMessage.includes('schema cache')) {
-        console.warn('[useDepartmentDragDrop] Entering fallback mode due to missing table')
+      if (err instanceof TableMissingError) {
+        console.warn('[useDepartmentDragDrop] Table missing - entering fallback mode')
         setUseFallbackMode(true)
-        setMigrationWarning('Database migration pending. Drag-and-drop is disabled. Using default department layout.')
+        setMigrationWarning('Database table not found. Drag-and-drop is disabled. Using default department layout.')
         setAssignments([])
+
+        // Cache the table missing status
+        sessionStorage.setItem(cacheKey, 'true')
       } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load assignments'
         setError(errorMessage)
-        onError?.(errorMessage)
+        onErrorRef.current?.(errorMessage)
       }
     } finally {
       setLoading(false)
     }
-  }, [organizationId, verticalId, onError])
+  }, [organizationId, verticalId, useFallbackMode])
+
+  /**
+   * Retry loading assignments after migration is applied
+   */
+  const retryAfterMigration = useCallback(() => {
+    const cacheKey = `dept_table_missing_${organizationId}_${verticalId}`
+    console.log('[useDepartmentDragDrop] Retry requested - clearing cache and re-fetching')
+
+    // Clear cache and reset state
+    sessionStorage.removeItem(cacheKey)
+    fetchAttemptedRef.current = false
+    setUseFallbackMode(false)
+    setMigrationWarning(null)
+    setError(null)
+
+    // Retry fetch
+    loadAssignments()
+  }, [organizationId, verticalId, loadAssignments])
 
   /**
    * Merges assignments with vertical config to create enriched DnD items
@@ -437,10 +483,12 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
     [dndItems, organizationId, verticalId, loadAssignments, onError]
   )
 
-  // Load assignments on mount
+  // Load assignments on mount or when org/vertical changes
   useEffect(() => {
+    if (!organizationId || !verticalId) return
     loadAssignments()
-  }, [loadAssignments])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId, verticalId])
 
   // Clean up expired undo items
   useEffect(() => {
@@ -475,6 +523,7 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
     undoLastMove,
     resetToDefaults,
     toggleVisibility,
-    reloadAssignments: loadAssignments
+    reloadAssignments: loadAssignments,
+    retryAfterMigration
   }
 }

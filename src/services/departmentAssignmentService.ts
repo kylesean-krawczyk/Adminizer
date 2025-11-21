@@ -13,10 +13,24 @@ import {
 import { VerticalId } from '../config/types'
 
 /**
+ * Custom error class for when the table doesn't exist
+ */
+export class TableMissingError extends Error {
+  code = 'PGRST205'
+  tableName = 'department_section_assignments'
+
+  constructor(message: string = 'Table not found in schema cache') {
+    super(message)
+    this.name = 'TableMissingError'
+  }
+}
+
+/**
  * Checks if an error is a table-not-found error (PGRST205)
  */
 export function isTableMissingError(error: any): boolean {
   return (
+    error instanceof TableMissingError ||
     error?.code === 'PGRST205' ||
     error?.message?.toLowerCase().includes('could not find the table') ||
     error?.message?.toLowerCase().includes('department_section_assignments')
@@ -61,6 +75,7 @@ export async function checkTableExists(): Promise<boolean> {
 
 /**
  * Fetches all department-section assignments for an organization and vertical
+ * @throws {TableMissingError} when the table doesn't exist
  */
 export const getDepartmentAssignments = async (
   organizationId: string,
@@ -83,9 +98,8 @@ export const getDepartmentAssignments = async (
 
     if (error) {
       if (isTableMissingError(error)) {
-        console.warn('[getDepartmentAssignments] Table not found or schema cache issue:', error)
-        console.warn('[getDepartmentAssignments] Returning empty array - will use vertical config defaults')
-        return []
+        console.warn('[getDepartmentAssignments] Table not found - throwing TableMissingError')
+        throw new TableMissingError(error.message || 'department_section_assignments table not found')
       }
       console.error('[getDepartmentAssignments] Error:', error)
       throw error
@@ -94,12 +108,12 @@ export const getDepartmentAssignments = async (
     console.log('[getDepartmentAssignments] Found assignments:', data?.length || 0)
     return data || []
   } catch (error) {
-    if (isTableMissingError(error)) {
-      console.warn('[getDepartmentAssignments] Caught table missing error - graceful fallback')
-      return []
+    // Re-throw TableMissingError or other typed errors
+    if (error instanceof TableMissingError || isTableMissingError(error)) {
+      throw error instanceof TableMissingError ? error : new TableMissingError('Table not found')
     }
     console.error('[getDepartmentAssignments] Exception:', error)
-    return []
+    throw error
   }
 }
 

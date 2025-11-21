@@ -69,7 +69,8 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
     undoLastMove,
     resetToDefaults,
     toggleVisibility,
-    reloadAssignments
+    reloadAssignments,
+    retryAfterMigration
   } = useDepartmentDragDrop({
     organizationId,
     verticalId,
@@ -303,26 +304,35 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
             <div className="flex-shrink-0">
               <AlertCircle className="h-5 w-5 text-yellow-400" />
             </div>
-            <div className="ml-3">
+            <div className="ml-3 flex-1">
               <h3 className="text-sm font-medium text-yellow-800">
-                Database Migration Required
+                Database Table Missing
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>{migrationWarning}</p>
                 <p className="mt-2">
-                  The table <code className="bg-yellow-100 px-1 rounded">department_section_assignments</code> needs to be created.
-                  Please refresh the page or contact your administrator.
+                  The <code className="bg-yellow-100 px-1 py-0.5 rounded font-mono text-xs">department_section_assignments</code> table was not found.
+                  {sessionStorage.getItem(`dept_table_missing_${organizationId}_${verticalId}`)
+                    ? ' If the migration was just applied, click "Check Again" to verify.'
+                    : ' Please run the database migration or contact your administrator.'}
                 </p>
               </div>
-              <div className="mt-4">
+              <div className="mt-4 flex items-center space-x-3">
+                <button
+                  onClick={retryAfterMigration}
+                  disabled={loading}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-800 bg-yellow-100 hover:bg-yellow-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Checking...' : 'Check Again'}
+                </button>
                 <button
                   onClick={() => {
-                    localStorage.removeItem('department_migration_status')
+                    sessionStorage.removeItem(`dept_table_missing_${organizationId}_${verticalId}`)
                     window.location.reload()
                   }}
-                  className="text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+                  className="text-sm text-yellow-700 hover:text-yellow-900 underline"
                 >
-                  Refresh Page
+                  Reload Page
                 </button>
               </div>
             </div>
