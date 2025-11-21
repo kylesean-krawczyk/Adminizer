@@ -86,7 +86,7 @@ export const churchConfig: VerticalConfig = {
     title: 'Church Ministries',
     subtitle: 'Access your ministry-specific tools and resources',
     coreSectionTitle: 'Core Ministries',
-    additionalSectionTitle: 'Additional Ministries',
+    additionalSectionTitle: 'Additional Ministries', // Deprecated - all departments now in Core Ministries
     stats: [
       {
         id: 'total-documents',
@@ -168,9 +168,7 @@ export const churchConfig: VerticalConfig = {
         textColor: 'text-indigo-600',
         bgColor: 'bg-indigo-50',
         route: '/department/customer-support'
-      }
-    ],
-    additionalDepartments: [
+      },
       {
         id: 'communications-marketing',
         name: 'Communications & Marketing',
@@ -241,7 +239,8 @@ export const churchConfig: VerticalConfig = {
         bgColor: 'bg-lime-50',
         route: '/department/quality-assurance'
       }
-    ]
+    ],
+    additionalDepartments: []
   },
 
   navigation: {
@@ -253,9 +252,7 @@ export const churchConfig: VerticalConfig = {
       { id: 'finance-accounting', name: 'Finance & Accounting', icon: Calculator, route: '/department/finance-accounting', color: 'green' },
       { id: 'sales', name: 'Donor Relations', icon: TrendingUp, route: '/department/sales', color: 'emerald', requiredFeature: 'donor-analytics' },
       { id: 'operations', name: 'Operations', icon: Cog, route: '/department/operations', color: 'purple' },
-      { id: 'member-care', name: 'Member Care', icon: Headphones, route: '/department/customer-support', color: 'indigo' }
-    ],
-    additionalDepartments: [
+      { id: 'member-care', name: 'Member Care', icon: Headphones, route: '/department/customer-support', color: 'indigo' },
       { id: 'communications-marketing', name: 'Communications & Marketing', icon: Megaphone, route: '/department/marketing', color: 'pink' },
       { id: 'it-technology', name: 'IT & Technology', icon: Monitor, route: '/department/it-technology', color: 'cyan' },
       { id: 'legal-compliance', name: 'Legal & Compliance', icon: Scale, route: '/department/legal-compliance', color: 'gray' },
@@ -264,6 +261,7 @@ export const churchConfig: VerticalConfig = {
       { id: 'research-development', name: 'Research & Development', icon: FlaskConical, route: '/department/research-development', color: 'violet' },
       { id: 'quality-assurance', name: 'Quality Assurance', icon: CheckCircle, route: '/department/quality-assurance', color: 'lime' }
     ],
+    additionalDepartments: [],
     operationsNav: [
       { id: 'workflows', name: 'Staff Onboarding', icon: GitBranch, route: '/workflows', requiredRole: 'admin' },
       { id: 'hr', name: 'HR', icon: Users, route: '/operations/hr' },
@@ -312,7 +310,14 @@ export const churchConfig: VerticalConfig = {
     'finance-accounting': 'green',
     'sales': 'emerald',
     'operations': 'purple',
-    'member-care': 'indigo'
+    'member-care': 'indigo',
+    'communications-marketing': 'pink',
+    'it-technology': 'cyan',
+    'legal-compliance': 'gray',
+    'procurement': 'orange',
+    'project-management': 'red',
+    'research-development': 'teal',
+    'quality-assurance': 'lime'
   },
 
   branding: {

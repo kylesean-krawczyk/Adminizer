@@ -18,7 +18,7 @@ const CollapsibleSidebar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { isAdmin, userProfile } = useUserManagement()
-  const { coreSectionTitle, additionalSectionTitle } = useVerticalDashboard()
+  const { coreSectionTitle } = useVerticalDashboard()
   const { vertical } = useVertical()
   
   // Load initial state from sessionStorage, default to expanded
@@ -27,7 +27,7 @@ const CollapsibleSidebar = () => {
     return saved !== null ? JSON.parse(saved) : true
   })
   
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['departments', 'more-departments']))
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['departments', 'operations']))
   const [isMobileOverlay, setIsMobileOverlay] = useState(false)
 
   // Save state to sessionStorage whenever it changes
@@ -171,53 +171,6 @@ const CollapsibleSidebar = () => {
             )}
           </div>
 
-          {/* More Departments */}
-          {moreDepartments.length > 0 && (
-            <div className="px-3 mt-2">
-              <button
-                onClick={() => isExpanded && toggleSection('more-departments')}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
-                  moreDepartments.some(dept => dept.route && isActive(dept.route))
-                    ? 'text-purple-600 bg-purple-50 font-medium'
-                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
-                }`}
-                title={!isExpanded ? additionalSectionTitle : undefined}
-              >
-                <div className="flex items-center gap-3">
-                  <Building2 className={`h-5 w-5 flex-shrink-0 ${moreDepartments.some(dept => dept.route && isActive(dept.route)) ? 'text-purple-600' : 'text-gray-500'}`} />
-                  {isExpanded && <span className="text-sm font-medium">{additionalSectionTitle}</span>}
-                </div>
-                {isExpanded && (
-                  expandedSections.has('more-departments')
-                    ? <ChevronDown className="h-4 w-4" />
-                    : <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-              
-              {isExpanded && expandedSections.has('more-departments') && (
-                <div className="mt-1 ml-4 space-y-1">
-                  {moreDepartments.map((dept) => {
-                    if (!hasRoleAccess(dept.requiredRole)) return null
-                    const DeptIcon = dept.icon
-                    return (
-                      <button
-                        key={dept.id}
-                        onClick={() => dept.route && handleNavigation(dept.route)}
-                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                          dept.route && isActive(dept.route)
-                            ? 'text-purple-600 bg-purple-50 font-medium'
-                            : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
-                        }`}
-                      >
-                        {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
-                        <span className="truncate">{dept.name}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Operations Center */}
           <div className="px-3 mt-2">
