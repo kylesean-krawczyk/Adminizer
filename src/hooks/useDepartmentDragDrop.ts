@@ -40,6 +40,8 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [useFallbackMode, setUseFallbackMode] = useState(false)
+  const [migrationWarning, setMigrationWarning] = useState<string | null>(null)
 
   // Store previous state for rollback on error
   const previousStateRef = useRef<DepartmentSectionAssignment[]>([])
@@ -56,6 +58,8 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
     try {
       setLoading(true)
       setError(null)
+      setUseFallbackMode(false)
+      setMigrationWarning(null)
 
       const data = await getDepartmentAssignments(organizationId, verticalId)
 
@@ -63,12 +67,29 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
       setAssignments(data)
       previousStateRef.current = [...data]
 
-      // If no assignments exist, we'll use the hardcoded config from vertical
-      // The component will handle initialization
+      // Check if we're in fallback mode (table doesn't exist or schema cache issue)
+      if (data.length === 0) {
+        // Empty could mean:
+        // 1. Table exists but no assignments yet (normal)
+        // 2. Table doesn't exist (fallback mode)
+        // The service layer handles this gracefully by returning []
+        console.log('[useDepartmentDragDrop] No assignments found - will use vertical config defaults')
+      }
     } catch (err) {
       console.error('[useDepartmentDragDrop] Load error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load assignments')
-      onError?.(err instanceof Error ? err.message : 'Failed to load assignments')
+
+      // Check if it's a table missing error
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load assignments'
+
+      if (errorMessage.includes('PGRST205') || errorMessage.includes('schema cache')) {
+        console.warn('[useDepartmentDragDrop] Entering fallback mode due to missing table')
+        setUseFallbackMode(true)
+        setMigrationWarning('Database migration pending. Drag-and-drop is disabled. Using default department layout.')
+        setAssignments([])
+      } else {
+        setError(errorMessage)
+        onError?.(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -442,6 +463,8 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
     loading,
     saving,
     error,
+    useFallbackMode,
+    migrationWarning,
 
     // Actions
     handleDragStart,

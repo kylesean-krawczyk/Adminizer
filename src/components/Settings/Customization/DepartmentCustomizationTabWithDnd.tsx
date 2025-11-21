@@ -59,6 +59,8 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
     undoStack,
     loading,
     saving,
+    useFallbackMode,
+    migrationWarning,
     handleDragStart,
     handleDragOver,
     handleDragEnd,
@@ -294,18 +296,54 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
 
   return (
     <div className="space-y-6">
+      {/* Migration Warning Banner */}
+      {useFallbackMode && migrationWarning && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Database Migration Required
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{migrationWarning}</p>
+                <p className="mt-2">
+                  The table <code className="bg-yellow-100 px-1 rounded">department_section_assignments</code> needs to be created.
+                  Please refresh the page or contact your administrator.
+                </p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('department_migration_status')
+                    window.location.reload()
+                  }}
+                  className="text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+                >
+                  Refresh Page
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Department Configuration (Drag & Drop)
+            Department Configuration {useFallbackMode ? '(Read-Only Mode)' : '(Drag & Drop)'}
           </h2>
           <p className="text-sm text-gray-600">
-            Drag departments to reorder or move between sections. Changes are saved automatically.
+            {useFallbackMode
+              ? 'Viewing default department layout. Drag-and-drop is disabled until migration is applied.'
+              : 'Drag departments to reorder or move between sections. Changes are saved automatically.'}
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          {undoStack.length > 0 && (
+          {!useFallbackMode && undoStack.length > 0 && (
             <button
               onClick={undoLastMove}
               disabled={saving}
@@ -315,14 +353,16 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
               <span>Undo Last Move</span>
             </button>
           )}
-          <button
-            onClick={resetToDefaults}
-            disabled={saving}
-            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RotateCcw className="h-4 w-4" />
-            <span>Reset to Defaults</span>
-          </button>
+          {!useFallbackMode && (
+            <button
+              onClick={resetToDefaults}
+              disabled={saving}
+              className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>Reset to Defaults</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -349,16 +389,9 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
         </div>
       )}
 
-      {/* Drag and Drop Context */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        {/* Sections */}
+      {/* Drag and Drop Context (disabled in fallback mode) */}
+      {useFallbackMode ? (
+        /* Fallback Mode - No Drag & Drop */
         <div className="space-y-8">
           {SECTION_CONFIG.map(section => {
             const SectionIcon = section.icon
@@ -369,13 +402,13 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
                 sectionName={section.name}
                 sectionIcon={<SectionIcon className="h-5 w-5 text-gray-600" />}
                 departments={sections[section.id] || []}
-                isOver={isDraggingOver === section.id}
+                isOver={false}
                 onToggleVisibility={handleToggleVisibility}
                 onNameChange={handleNameChange}
                 onDescriptionChange={handleDescriptionChange}
                 onReset={handleResetDepartment}
-                onMoveToSection={moveToSection}
-                availableSections={SECTION_CONFIG}
+                onMoveToSection={undefined}
+                availableSections={[]}
                 getCustomName={getCustomName}
                 getCustomDescription={getCustomDescription}
                 isVisible={isVisible}
@@ -383,28 +416,74 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
             )
           })}
         </div>
+      ) : (
+        /* Normal Mode - Full Drag & Drop */
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          {/* Sections */}
+          <div className="space-y-8">
+            {SECTION_CONFIG.map(section => {
+              const SectionIcon = section.icon
+              return (
+                <SectionDropzone
+                  key={section.id}
+                  sectionId={section.id}
+                  sectionName={section.name}
+                  sectionIcon={<SectionIcon className="h-5 w-5 text-gray-600" />}
+                  departments={sections[section.id] || []}
+                  isOver={isDraggingOver === section.id}
+                  onToggleVisibility={handleToggleVisibility}
+                  onNameChange={handleNameChange}
+                  onDescriptionChange={handleDescriptionChange}
+                  onReset={handleResetDepartment}
+                  onMoveToSection={moveToSection}
+                  availableSections={SECTION_CONFIG}
+                  getCustomName={getCustomName}
+                  getCustomDescription={getCustomDescription}
+                  isVisible={isVisible}
+                />
+              )
+            })}
+          </div>
 
-        {/* Drag Overlay */}
-        <DragOverlay>
-          {activeDepartment ? (
-            <div className="bg-white border-2 border-blue-500 rounded-lg p-4 shadow-lg opacity-90">
-              <h4 className="font-medium text-gray-900">
-                {activeDepartment.custom_name || activeDepartment.defaultName}
-              </h4>
-              <p className="text-sm text-gray-500 mt-1">
-                {activeDepartment.custom_description || activeDepartment.defaultDescription}
-              </p>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeDepartment ? (
+              <div className="bg-white border-2 border-blue-500 rounded-lg p-4 shadow-lg opacity-90">
+                <h4 className="font-medium text-gray-900">
+                  {activeDepartment.custom_name || activeDepartment.defaultName}
+                </h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  {activeDepartment.custom_description || activeDepartment.defaultDescription}
+                </p>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
 
       {/* Info Banner */}
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <p className="text-sm text-blue-800">
-          <strong>Tip:</strong> Drag the grip handle to move departments between sections or
-          reorder within a section. Use the three-dot menu for keyboard-accessible moving. Changes
-          are saved automatically and sync across all admin sessions in real-time.
+      <div className={`rounded-lg p-4 border ${useFallbackMode ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'}`}>
+        <p className={`text-sm ${useFallbackMode ? 'text-gray-700' : 'text-blue-800'}`}>
+          {useFallbackMode ? (
+            <>
+              <strong>Note:</strong> You are viewing the default department layout. Name and description
+              customization is still available, but drag-and-drop functionality requires a database migration.
+              Please refresh this page after the migration is applied.
+            </>
+          ) : (
+            <>
+              <strong>Tip:</strong> Drag the grip handle to move departments between sections or
+              reorder within a section. Use the three-dot menu for keyboard-accessible moving. Changes
+              are saved automatically and sync across all admin sessions in real-time.
+            </>
+          )}
         </p>
       </div>
     </div>

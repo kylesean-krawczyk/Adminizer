@@ -13,6 +13,53 @@ import {
 import { VerticalId } from '../config/types'
 
 /**
+ * Checks if an error is a table-not-found error (PGRST205)
+ */
+export function isTableMissingError(error: any): boolean {
+  return (
+    error?.code === 'PGRST205' ||
+    error?.message?.toLowerCase().includes('could not find the table') ||
+    error?.message?.toLowerCase().includes('department_section_assignments')
+  )
+}
+
+/**
+ * Checks if an error is a schema cache issue
+ */
+export function isSchemaCacheError(error: any): boolean {
+  return (
+    error?.code === 'PGRST205' ||
+    error?.message?.toLowerCase().includes('schema cache')
+  )
+}
+
+/**
+ * Checks if the department_section_assignments table exists
+ */
+export async function checkTableExists(): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('department_section_assignments')
+      .select('id')
+      .limit(1)
+
+    if (error) {
+      if (isTableMissingError(error)) {
+        console.warn('[checkTableExists] Table does not exist:', error)
+        return false
+      }
+      console.error('[checkTableExists] Unexpected error:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[checkTableExists] Exception:', error)
+    return false
+  }
+}
+
+/**
  * Fetches all department-section assignments for an organization and vertical
  */
 export const getDepartmentAssignments = async (
@@ -35,6 +82,11 @@ export const getDepartmentAssignments = async (
       .order('display_order', { ascending: true })
 
     if (error) {
+      if (isTableMissingError(error)) {
+        console.warn('[getDepartmentAssignments] Table not found or schema cache issue:', error)
+        console.warn('[getDepartmentAssignments] Returning empty array - will use vertical config defaults')
+        return []
+      }
       console.error('[getDepartmentAssignments] Error:', error)
       throw error
     }
@@ -42,6 +94,10 @@ export const getDepartmentAssignments = async (
     console.log('[getDepartmentAssignments] Found assignments:', data?.length || 0)
     return data || []
   } catch (error) {
+    if (isTableMissingError(error)) {
+      console.warn('[getDepartmentAssignments] Caught table missing error - graceful fallback')
+      return []
+    }
     console.error('[getDepartmentAssignments] Exception:', error)
     return []
   }
@@ -380,5 +436,86 @@ export const getDepartmentsBySection = async (
       operations: [],
       admin: []
     }
+  }
+}
+
+/**
+ * Creates default department assignments from a vertical configuration
+ * Used for initialization or after reset
+ */
+export const createDefaultAssignmentsFromVertical = async (
+  organizationId: string,
+  verticalId: VerticalId,
+  verticalConfig: any
+): Promise<number> => {
+  try {
+    console.log('[createDefaultAssignmentsFromVertical] Creating defaults:', {
+      organizationId,
+      verticalId
+    })
+
+    // Check if assignments already exist
+    const existing = await getDepartmentAssignments(organizationId, verticalId)
+    if (existing.length > 0) {
+      console.log('[createDefaultAssignmentsFromVertical] Assignments already exist, skipping')
+      return existing.length
+    }
+
+    // Extract all departments from vertical config
+    const allDepartments = [
+      ...(verticalConfig.dashboardConfig?.coreDepartments || []),
+      ...(verticalConfig.dashboardConfig?.additionalDepartments || [])
+    ]
+
+    console.log('[createDefaultAssignmentsFromVertical] Found departments:', allDepartments.length)
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Map each department to its default section based on navigation
+    const assignments = allDepartments.map((dept, index) => {
+      let sectionId: SectionId = 'departments' // default
+
+      // Determine section from navigation config
+      if (dept.id === 'documents') {
+        sectionId = 'documents'
+      } else if (verticalConfig.navigation?.operationsNav?.some((d: any) => d.id === dept.id)) {
+        sectionId = 'operations'
+      } else if (verticalConfig.navigation?.adminNav?.some((d: any) => d.id === dept.id)) {
+        sectionId = 'admin'
+      } else if (verticalConfig.navigation?.departmentNav?.some((d: any) => d.id === dept.id)) {
+        sectionId = 'departments'
+      }
+
+      return {
+        organization_id: organizationId,
+        vertical_id: verticalId,
+        department_id: dept.id,
+        department_key: dept.id,
+        section_id: sectionId,
+        display_order: index,
+        is_visible: true,
+        custom_name: null,
+        custom_description: null,
+        created_by: user?.id || null,
+        updated_by: user?.id || null
+      }
+    })
+
+    console.log('[createDefaultAssignmentsFromVertical] Inserting assignments:', assignments.length)
+
+    const { error } = await supabase
+      .from('department_section_assignments')
+      .insert(assignments)
+
+    if (error) {
+      console.error('[createDefaultAssignmentsFromVertical] Error:', error)
+      throw error
+    }
+
+    console.log('[createDefaultAssignmentsFromVertical] Success!')
+    return assignments.length
+  } catch (error) {
+    console.error('[createDefaultAssignmentsFromVertical] Exception:', error)
+    throw error
   }
 }
