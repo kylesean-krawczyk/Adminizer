@@ -261,7 +261,8 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
       console.log('[useDepartmentDragDrop] Drag end:', {
         departmentId,
         targetSectionId,
-        targetPosition
+        targetPosition,
+        currentAssignmentsCount: assignments.length
       })
 
       setActiveId(null)
@@ -281,6 +282,13 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         return
       }
 
+      console.log('[useDepartmentDragDrop] Move details:', {
+        from: fromSectionId,
+        to: targetSectionId,
+        position: targetPosition,
+        departmentName: item.custom_name || item.defaultName
+      })
+
       // Store undo action
       const undoAction: DepartmentMoveAction = {
         id: `${Date.now()}-${departmentId}`,
@@ -294,20 +302,54 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         previous_state: [...assignments]
       }
 
-      // Optimistic UI update
-      const optimisticUpdate = assignments.map(a =>
-        a.department_id === departmentId
-          ? { ...a, section_id: targetSectionId, display_order: targetPosition }
-          : a
-      )
+      // Optimistic UI update - handle both existing and new assignments
+      const existingAssignment = assignments.find(a => a.department_id === departmentId)
+
+      let optimisticUpdate: DepartmentSectionAssignment[]
+
+      if (existingAssignment) {
+        // Update existing assignment
+        console.log('[useDepartmentDragDrop] Updating existing assignment')
+        optimisticUpdate = assignments.map(a =>
+          a.department_id === departmentId
+            ? { ...a, section_id: targetSectionId, display_order: targetPosition, updated_at: new Date().toISOString() }
+            : a
+        )
+      } else {
+        // Create new assignment from dndItem (table is empty or department not yet saved)
+        console.log('[useDepartmentDragDrop] Creating new assignment (table was empty)')
+        const newAssignment: DepartmentSectionAssignment = {
+          id: `temp-${Date.now()}`,
+          organization_id: organizationId,
+          vertical_id: verticalId,
+          department_id: departmentId,
+          department_key: departmentId,
+          section_id: targetSectionId,
+          display_order: targetPosition,
+          is_visible: true,
+          custom_name: item.custom_name || null,
+          custom_description: item.custom_description || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: null,
+          updated_by: null
+        }
+        optimisticUpdate = [...assignments, newAssignment]
+      }
+
+      console.log('[useDepartmentDragDrop] Optimistic update created, new count:', optimisticUpdate.length)
       setAssignments(optimisticUpdate)
+      previousStateRef.current = [...assignments]
 
       try {
         setSaving(true)
 
+        let result: any
+
         if (fromSectionId === targetSectionId) {
           // Reorder within same section
-          await reorderWithinSection({
+          console.log('[useDepartmentDragDrop] Calling reorderWithinSection')
+          result = await reorderWithinSection({
             organizationId,
             verticalId,
             sectionId: targetSectionId,
@@ -315,9 +357,11 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
             oldIndex: item.display_order,
             newIndex: targetPosition
           })
+          console.log('[useDepartmentDragDrop] Reorder result:', result)
         } else {
           // Move to different section
-          await moveDepartmentToSection({
+          console.log('[useDepartmentDragDrop] Calling moveDepartmentToSection')
+          result = await moveDepartmentToSection({
             organizationId,
             verticalId,
             departmentId,
@@ -325,6 +369,15 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
             toSectionId: targetSectionId,
             targetPosition
           })
+          console.log('[useDepartmentDragDrop] Move result:', result)
+        }
+
+        // Validate that the operation actually affected rows
+        if (result && typeof result === 'object' && 'affected_rows' in result) {
+          console.log('[useDepartmentDragDrop] Database affected rows:', result.affected_rows)
+          if (result.affected_rows === 0) {
+            console.warn('[useDepartmentDragDrop] Warning: Operation returned 0 affected rows')
+          }
         }
 
         // Add to undo stack
@@ -336,7 +389,12 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
           return newStack
         })
 
+        // Small delay before reload to ensure database propagation
+        console.log('[useDepartmentDragDrop] Waiting 100ms before reload')
+        await new Promise(resolve => setTimeout(resolve, 100))
+
         // Reload to get accurate state
+        console.log('[useDepartmentDragDrop] Reloading assignments from database')
         await loadAssignments()
 
         onSuccess?.(
@@ -346,6 +404,7 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         console.error('[useDepartmentDragDrop] Move error:', err)
 
         // Rollback optimistic update
+        console.log('[useDepartmentDragDrop] Rolling back to previous state')
         setAssignments(previousStateRef.current)
 
         const errorMsg = err instanceof Error ? err.message : 'Failed to move department'

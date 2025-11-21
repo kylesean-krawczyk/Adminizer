@@ -179,7 +179,9 @@ export const bulkUpdateDepartmentOrder = async (
       organizationId,
       verticalId,
       sectionId,
-      updateCount: updates.length
+      updateCount: updates.length,
+      updates: updates,
+      timestamp: new Date().toISOString()
     })
 
     const { data, error } = await supabase.rpc('bulk_update_department_order', {
@@ -190,14 +192,40 @@ export const bulkUpdateDepartmentOrder = async (
     })
 
     if (error) {
-      console.error('[bulkUpdateDepartmentOrder] Error:', error)
+      console.error('[bulkUpdateDepartmentOrder] RPC Error:', {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
       throw error
     }
 
-    console.log('[bulkUpdateDepartmentOrder] Response:', data)
+    console.log('[bulkUpdateDepartmentOrder] RPC Response:', {
+      data,
+      success: data?.success,
+      updatedCount: data?.updated_count,
+      affectedRows: data?.affected_rows
+    })
+
+    // Validate response
+    if (!data) {
+      console.error('[bulkUpdateDepartmentOrder] No data returned from RPC')
+      throw new Error('No data returned from database function')
+    }
+
+    if (data.affected_rows === 0) {
+      console.warn('[bulkUpdateDepartmentOrder] Warning: 0 rows affected - table may be empty')
+    }
+
     return data as BulkOrderUpdateResponse
   } catch (error) {
-    console.error('[bulkUpdateDepartmentOrder] Exception:', error)
+    console.error('[bulkUpdateDepartmentOrder] Exception:', {
+      error,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : String(error)
+    })
     throw error
   }
 }
@@ -209,7 +237,10 @@ export const moveDepartmentToSection = async (
   params: MoveDepartmentParams
 ): Promise<DepartmentMoveResult> => {
   try {
-    console.log('[moveDepartmentToSection] Moving department:', params)
+    console.log('[moveDepartmentToSection] Moving department:', {
+      ...params,
+      timestamp: new Date().toISOString()
+    })
 
     const { data, error } = await supabase.rpc('move_department_to_section', {
       p_organization_id: params.organizationId,
@@ -221,14 +252,40 @@ export const moveDepartmentToSection = async (
     })
 
     if (error) {
-      console.error('[moveDepartmentToSection] Error:', error)
+      console.error('[moveDepartmentToSection] RPC Error:', {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
       throw error
     }
 
-    console.log('[moveDepartmentToSection] Response:', data)
+    console.log('[moveDepartmentToSection] RPC Response:', {
+      data,
+      success: data?.success,
+      affectedRows: data?.affected_rows,
+      operation: data?.operation
+    })
+
+    // Validate response
+    if (!data) {
+      console.error('[moveDepartmentToSection] No data returned from RPC')
+      throw new Error('No data returned from database function')
+    }
+
+    if (data.affected_rows === 0) {
+      console.warn('[moveDepartmentToSection] Warning: 0 rows affected - may indicate table was empty or constraint issue')
+    }
+
     return data as DepartmentMoveResult
   } catch (error) {
-    console.error('[moveDepartmentToSection] Exception:', error)
+    console.error('[moveDepartmentToSection] Exception:', {
+      error,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : String(error)
+    })
     throw error
   }
 }
@@ -240,7 +297,10 @@ export const reorderWithinSection = async (
   params: ReorderWithinSectionParams
 ): Promise<boolean> => {
   try {
-    console.log('[reorderWithinSection] Reordering:', params)
+    console.log('[reorderWithinSection] Reordering:', {
+      ...params,
+      timestamp: new Date().toISOString()
+    })
 
     // Get all departments in the section
     const assignments = await getDepartmentAssignments(
@@ -248,9 +308,17 @@ export const reorderWithinSection = async (
       params.verticalId
     )
 
+    console.log('[reorderWithinSection] Current assignments count:', assignments.length)
+
     const sectionDepartments = assignments
       .filter(a => a.section_id === params.sectionId)
       .sort((a, b) => a.display_order - b.display_order)
+
+    console.log('[reorderWithinSection] Departments in section:', {
+      sectionId: params.sectionId,
+      count: sectionDepartments.length,
+      departmentIds: sectionDepartments.map(d => d.department_id)
+    })
 
     // Find the department to move
     const deptIndex = sectionDepartments.findIndex(
@@ -258,12 +326,22 @@ export const reorderWithinSection = async (
     )
 
     if (deptIndex === -1) {
+      console.error('[reorderWithinSection] Department not found in section:', {
+        departmentId: params.departmentId,
+        sectionId: params.sectionId,
+        availableDepartments: sectionDepartments.map(d => d.department_id)
+      })
       throw new Error('Department not found in section')
     }
 
     // Reorder the array
     const [removed] = sectionDepartments.splice(params.oldIndex, 1)
     sectionDepartments.splice(params.newIndex, 0, removed)
+
+    console.log('[reorderWithinSection] New order:', sectionDepartments.map((d, i) => ({
+      dept: d.department_id,
+      order: i
+    })))
 
     // Create bulk update payload
     const updates: BulkOrderUpdate[] = sectionDepartments.map((dept, index) => ({
@@ -272,6 +350,7 @@ export const reorderWithinSection = async (
     }))
 
     // Execute bulk update
+    console.log('[reorderWithinSection] Calling bulkUpdateDepartmentOrder with', updates.length, 'updates')
     const result = await bulkUpdateDepartmentOrder(
       params.organizationId,
       params.verticalId,
@@ -279,9 +358,19 @@ export const reorderWithinSection = async (
       updates
     )
 
+    console.log('[reorderWithinSection] Bulk update result:', {
+      success: result.success,
+      updatedCount: result.updated_count,
+      affectedRows: result.affected_rows
+    })
+
     return result.success
   } catch (error) {
-    console.error('[reorderWithinSection] Exception:', error)
+    console.error('[reorderWithinSection] Exception:', {
+      error,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : String(error)
+    })
     throw error
   }
 }

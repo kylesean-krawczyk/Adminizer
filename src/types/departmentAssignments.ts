@@ -76,6 +76,8 @@ export interface DepartmentMoveResult {
   from_section: SectionId
   to_section: SectionId
   position: number
+  affected_rows?: number
+  operation?: string
   error?: string
 }
 
@@ -140,6 +142,7 @@ export interface SaveDepartmentAssignmentParams {
 export interface BulkOrderUpdateResponse {
   success: boolean
   updated_count: number
+  affected_rows?: number
   updated_rows: DepartmentSectionAssignment[]
   error?: string
 }
