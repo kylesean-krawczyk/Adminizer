@@ -59,19 +59,25 @@ const CollapsibleSidebar = () => {
     setExpandedSections(newExpanded)
   }
 
-  const primaryNav = vertical.navigation.primaryNav || []
-  const coreDepartments = vertical.navigation.departmentNav || []
-  const moreDepartments = vertical.navigation.additionalDepartments || []
-  const operationsCategories = vertical.navigation.operationsNav || []
-  const adminItems = vertical.navigation.adminNav || []
+  const { departmentStructure, departmentStructureLoading } = useVertical()
 
-  // Debug logging to verify customized department names are received
+  // Use database-driven structure if available, fall back to config
+  const primaryNav = departmentStructure?.documents || vertical.navigation.primaryNav || []
+  const coreDepartments = departmentStructure?.departments || vertical.navigation.departmentNav || []
+  const operationsCategories = departmentStructure?.operations || vertical.navigation.operationsNav || []
+  const adminItems = departmentStructure?.admin || vertical.navigation.adminNav || []
+
+  // Debug logging to verify department structure from database
   useEffect(() => {
-    console.log('[CollapsibleSidebar] Navigation departments received:', {
-      coreDepartments: coreDepartments.map(d => ({ id: d.id, name: d.name })),
-      moreDepartments: moreDepartments.map(d => ({ id: d.id, name: d.name }))
+    console.log('[CollapsibleSidebar] Department structure:', {
+      usingDatabase: !!departmentStructure,
+      loading: departmentStructureLoading,
+      primaryNav: primaryNav.map(d => ({ id: d.id, name: d.name })),
+      departments: coreDepartments.map(d => ({ id: d.id, name: d.name })),
+      operations: operationsCategories.map(d => ({ id: d.id, name: d.name })),
+      admin: adminItems.map(d => ({ id: d.id, name: d.name }))
     })
-  }, [coreDepartments, moreDepartments])
+  }, [departmentStructure, departmentStructureLoading, primaryNav, coreDepartments, operationsCategories, adminItems])
 
   const hasRoleAccess = (requiredRole?: string): boolean => {
     if (!requiredRole) return true

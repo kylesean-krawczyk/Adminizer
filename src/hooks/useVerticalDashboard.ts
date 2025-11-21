@@ -15,12 +15,28 @@ export interface UseVerticalDashboardReturn {
 }
 
 export function useVerticalDashboard(): UseVerticalDashboardReturn {
-  const { vertical } = useVertical()
+  const { vertical, departmentStructure } = useVertical()
   const dashboardConfig = vertical.dashboardConfig
+
+  // Use database-driven structure if available, fall back to config
+  // Convert merged departments to DepartmentButton format for dashboard
+  const coreDepartments: DepartmentButton[] = departmentStructure?.departments
+    ? departmentStructure.departments.map(dept => ({
+        id: dept.id,
+        name: dept.name,
+        description: dept.description || '',
+        icon: dept.icon,
+        color: dept.color || 'bg-gray-600 hover:bg-gray-700',
+        textColor: dept.color ? `text-${dept.color}-600` : 'text-gray-600',
+        bgColor: dept.color ? `bg-${dept.color}-50` : 'bg-gray-50',
+        route: dept.route || `/department/${dept.id}`,
+        requiredFeature: dept.requiredFeature
+      }))
+    : dashboardConfig.coreDepartments
 
   const getDepartmentById = (id: string): DepartmentButton | undefined => {
     const allDepartments = [
-      ...dashboardConfig.coreDepartments,
+      ...coreDepartments,
       ...dashboardConfig.additionalDepartments
     ]
     return allDepartments.find(dept => dept.id === id)
@@ -34,7 +50,7 @@ export function useVerticalDashboard(): UseVerticalDashboardReturn {
     dashboardConfig,
     getDepartmentById,
     getStatById,
-    coreDepartments: dashboardConfig.coreDepartments,
+    coreDepartments,
     additionalDepartments: dashboardConfig.additionalDepartments,
     stats: dashboardConfig.stats,
     title: dashboardConfig.title,

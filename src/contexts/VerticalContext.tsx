@@ -3,6 +3,8 @@ import { VerticalConfig, VerticalId, getVerticalConfig, initializeVerticalConfig
 import { supabase } from '../lib/supabase'
 import { isDemoMode } from '../lib/demo'
 import { getCustomizationForVertical, applyCustomizationToVerticalConfig } from '../services/organizationCustomizationService'
+import { useDepartmentStructure } from '../hooks/useDepartmentStructure'
+import { SectionedDepartments } from '../utils/departmentMerger'
 
 interface VerticalContextType {
   vertical: VerticalConfig
@@ -13,6 +15,9 @@ interface VerticalContextType {
   hasFeature: (featureId: string) => boolean
   refreshVertical: () => Promise<void>
   customizationLoaded: boolean
+  departmentStructure: SectionedDepartments | null
+  departmentStructureLoading: boolean
+  refetchDepartmentStructure: () => Promise<void>
 }
 
 const VerticalContext = createContext<VerticalContextType | undefined>(undefined)
@@ -27,6 +32,19 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [customizationLoaded, setCustomizationLoaded] = useState(false)
+  const [organizationId, setOrganizationId] = useState<string | undefined>(undefined)
+
+  // Use department structure hook for database-driven department assignments
+  const {
+    structure: departmentStructure,
+    loading: departmentStructureLoading,
+    refetch: refetchDepartmentStructure
+  } = useDepartmentStructure({
+    organizationId,
+    verticalId,
+    baseConfig: vertical,
+    enabled: customizationLoaded
+  })
 
   const applyCustomizations = async (
     baseConfig: VerticalConfig,
@@ -342,7 +360,10 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       }
 
       let userVertical = (userProfile.active_vertical as VerticalId) || 'church'
-      let organizationId: string | null = userProfile.organization_id
+      let currentOrgId: string | null = userProfile.organization_id
+
+      // Store organization ID in state for department structure hook
+      setOrganizationId(currentOrgId || undefined)
 
       if (userProfile.organization_id) {
         try {
@@ -385,7 +406,7 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       }
 
       const baseConfig = getVerticalConfig(userVertical)
-      const customizedConfig = await applyCustomizations(baseConfig, organizationId, userVertical)
+      const customizedConfig = await applyCustomizations(baseConfig, currentOrgId, userVertical)
 
       setVerticalId(userVertical)
       setVertical(customizedConfig)
@@ -409,6 +430,17 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
     }
     loadVerticalFromOrganization()
   }, [])
+
+  // Listen for department structure changes from UI Customization
+  useEffect(() => {
+    const handleDepartmentChange = () => {
+      console.log('[VerticalContext] Department structure changed, refetching...')
+      refetchDepartmentStructure()
+    }
+
+    window.addEventListener('departmentStructureChanged', handleDepartmentChange)
+    return () => window.removeEventListener('departmentStructureChanged', handleDepartmentChange)
+  }, [refetchDepartmentStructure])
 
   const getTerm = (key: string, fallback?: string): string => {
     const term = vertical.terminology[key]
@@ -440,7 +472,10 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
     getTerm,
     hasFeature,
     refreshVertical,
-    customizationLoaded
+    customizationLoaded,
+    departmentStructure,
+    departmentStructureLoading,
+    refetchDepartmentStructure
   }
 
   if (loading) {

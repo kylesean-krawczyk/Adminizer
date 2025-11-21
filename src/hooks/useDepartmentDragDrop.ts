@@ -466,6 +466,12 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         // Verify the reload actually got data
         console.log('[useDepartmentDragDrop] Assignments after reload:', assignments.length)
 
+        // Broadcast change to other components (sidebar, dashboard)
+        console.log('[useDepartmentDragDrop] Broadcasting department structure change')
+        window.dispatchEvent(new CustomEvent('departmentStructureChanged', {
+          detail: { departmentId, sectionId: targetSectionId, affectedRows }
+        }))
+
         onSuccess?.(
           `Moved ${item.custom_name || item.defaultName} to ${targetSectionId}`
         )
