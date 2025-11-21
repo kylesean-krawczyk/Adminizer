@@ -256,7 +256,7 @@ export const churchConfig: VerticalConfig = {
       { id: 'customer-support', name: 'Member Care', icon: Headphones, route: '/department/customer-support', color: 'indigo' }
     ],
     additionalDepartments: [
-      { id: 'marketing', name: 'Communications & Marketing', icon: Megaphone, route: '/department/marketing', color: 'pink' },
+      { id: 'communications-marketing', name: 'Communications & Marketing', icon: Megaphone, route: '/department/marketing', color: 'pink' },
       { id: 'it-technology', name: 'IT & Technology', icon: Monitor, route: '/department/it-technology', color: 'cyan' },
       { id: 'legal-compliance', name: 'Legal & Compliance', icon: Scale, route: '/department/legal-compliance', color: 'gray' },
       { id: 'procurement', name: 'Procurement', icon: Package, route: '/department/procurement', color: 'amber' },

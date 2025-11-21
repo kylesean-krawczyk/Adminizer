@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { CustomizationDraft, CUSTOMIZATION_LIMITS } from '../../../types/organizationCustomization'
 import { Eye, EyeOff, RotateCcw, AlertCircle } from 'lucide-react'
+import { useVertical } from '../../../contexts/VerticalContext'
 
 interface DepartmentCustomizationTabProps {
   draft: CustomizationDraft
@@ -8,6 +9,8 @@ interface DepartmentCustomizationTabProps {
 }
 
 const DepartmentCustomizationTab: React.FC<DepartmentCustomizationTabProps> = ({ draft, updateDraft }) => {
+  const { vertical } = useVertical()
+
   const handleToggleVisibility = (deptId: string) => {
     const departments = draft.department_config.departments || []
     const existingDept = departments.find(d => d.id === deptId)
@@ -116,19 +119,27 @@ const DepartmentCustomizationTab: React.FC<DepartmentCustomizationTabProps> = ({
     return !!(dept?.name || dept?.description)
   }
 
-  const coreDepartments = [
-    { id: 'human-resources', name: 'Human Resources', description: 'Staff records and management' },
-    { id: 'finance-accounting', name: 'Finance & Accounting', description: 'Financial operations' },
-    { id: 'donor-relations', name: 'Donor Relations', description: 'Donor management' },
-    { id: 'it-technology', name: 'IT & Technology', description: 'Technology services' },
-    { id: 'customer-support', name: 'Customer Support', description: 'Support services' }
-  ]
+  const coreDepartments = useMemo(() => {
+    return vertical.dashboardConfig.coreDepartments.map(dept => ({
+      id: dept.id,
+      name: dept.name,
+      description: dept.description
+    }))
+  }, [vertical.dashboardConfig.coreDepartments])
 
-  const additionalDepartments = [
-    { id: 'marketing', name: 'Marketing', description: 'Marketing campaigns' },
-    { id: 'legal-compliance', name: 'Legal & Compliance', description: 'Legal operations' },
-    { id: 'procurement', name: 'Procurement', description: 'Vendor management' }
-  ]
+  const additionalDepartments = useMemo(() => {
+    return vertical.dashboardConfig.additionalDepartments.map(dept => ({
+      id: dept.id,
+      name: dept.name,
+      description: dept.description
+    }))
+  }, [vertical.dashboardConfig.additionalDepartments])
+
+  useEffect(() => {
+    console.log('[DepartmentCustomizationTab] Core departments loaded:', coreDepartments.map(d => ({ id: d.id, name: d.name })))
+    console.log('[DepartmentCustomizationTab] Additional departments loaded:', additionalDepartments.map(d => ({ id: d.id, name: d.name })))
+    console.log('[DepartmentCustomizationTab] Total departments available for customization:', coreDepartments.length + additionalDepartments.length)
+  }, [coreDepartments, additionalDepartments])
 
   const getDisplayName = (dept: typeof coreDepartments[0]) => {
     const customName = getCustomName(dept.id)
