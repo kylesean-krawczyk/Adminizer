@@ -262,11 +262,18 @@ export const moveDepartmentToSection = async (
       throw error
     }
 
-    console.log('[moveDepartmentToSection] RPC Response:', {
+    // Log raw response for debugging
+    console.log('[moveDepartmentToSection] Raw RPC Response:', {
       data,
+      dataType: typeof data,
+      dataKeys: data ? Object.keys(data) : []
+    })
+
+    console.log('[moveDepartmentToSection] RPC Response:', {
       success: data?.success,
-      affectedRows: data?.affected_rows,
-      operation: data?.operation
+      affected_rows: data?.affected_rows,
+      operation: data?.operation,
+      department_id: data?.department_id
     })
 
     // Validate response
@@ -275,11 +282,37 @@ export const moveDepartmentToSection = async (
       throw new Error('No data returned from database function')
     }
 
-    if (data.affected_rows === 0) {
-      console.warn('[moveDepartmentToSection] Warning: 0 rows affected - may indicate table was empty or constraint issue')
+    // Check if RPC returned an error
+    if (data.success === false) {
+      console.error('[moveDepartmentToSection] RPC returned error:', {
+        error: data.error,
+        error_code: data.error_code
+      })
+      throw new Error(data.error || 'Database function returned error')
     }
 
-    return data as DepartmentMoveResult
+    // Validate affected rows
+    const affectedRows = data.affected_rows || 0
+    if (affectedRows === 0) {
+      console.error('[moveDepartmentToSection] CRITICAL: 0 rows affected - write failed!', {
+        params,
+        response: data
+      })
+      throw new Error('Database write failed - no rows were modified. This may be an RLS policy issue.')
+    }
+
+    console.log('[moveDepartmentToSection] ✓ Success - affected rows:', affectedRows)
+
+    // Return with snake_case preserved for TypeScript
+    return {
+      success: true,
+      department_id: data.department_id,
+      from_section: data.from_section,
+      to_section: data.to_section,
+      position: data.position,
+      affected_rows: affectedRows,
+      operation: data.operation
+    } as DepartmentMoveResult
   } catch (error) {
     console.error('[moveDepartmentToSection] Exception:', {
       error,

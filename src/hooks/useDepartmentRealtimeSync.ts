@@ -17,9 +17,17 @@ export const useDepartmentRealtimeSync = (options: UseDepartmentRealtimeSyncOpti
   const { organizationId, verticalId, onUpdate, enabled = true } = options
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isSubscribedRef = useRef(false)
+
+  // Store onUpdate in a ref to avoid dependency issues
+  const onUpdateRef = useRef(onUpdate)
+  useEffect(() => {
+    onUpdateRef.current = onUpdate
+  }, [onUpdate])
 
   /**
    * Debounced update handler to prevent rapid successive updates
+   * Using ref for callback to avoid recreating on every render
    */
   const debouncedUpdate = useCallback(() => {
     if (debounceTimerRef.current) {
@@ -28,11 +36,17 @@ export const useDepartmentRealtimeSync = (options: UseDepartmentRealtimeSyncOpti
 
     debounceTimerRef.current = setTimeout(() => {
       console.log('[useDepartmentRealtimeSync] Triggering debounced update')
-      onUpdate()
+      onUpdateRef.current()
     }, 500)
-  }, [onUpdate])
+  }, [])
 
   useEffect(() => {
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) {
+      console.log('[useDepartmentRealtimeSync] Already subscribed, skipping')
+      return
+    }
+
     if (!enabled || !organizationId || !verticalId) {
       console.log('[useDepartmentRealtimeSync] Sync disabled or missing params')
       return
@@ -42,6 +56,8 @@ export const useDepartmentRealtimeSync = (options: UseDepartmentRealtimeSyncOpti
       organizationId,
       verticalId
     })
+
+    isSubscribedRef.current = true
 
     // Create a channel for this organization and vertical
     const channel = supabase.channel(`department_assignments:${organizationId}:${verticalId}`)
@@ -91,6 +107,7 @@ export const useDepartmentRealtimeSync = (options: UseDepartmentRealtimeSyncOpti
     // Cleanup function
     return () => {
       console.log('[useDepartmentRealtimeSync] Cleaning up subscription')
+      isSubscribedRef.current = false
 
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
@@ -101,7 +118,7 @@ export const useDepartmentRealtimeSync = (options: UseDepartmentRealtimeSyncOpti
         channelRef.current = null
       }
     }
-  }, [organizationId, verticalId, enabled, debouncedUpdate])
+  }, [organizationId, verticalId, enabled])
 
   /**
    * Manually broadcasts a change to other sessions

@@ -17,6 +17,7 @@ import {
   TableMissingError
 } from '../services/departmentAssignmentService'
 import { useVertical } from '../contexts/VerticalContext'
+import { supabase } from '../lib/supabase'
 
 const UNDO_TIMEOUT_MS = 300000 // 5 minutes
 const MAX_UNDO_STACK = 10
@@ -254,6 +255,51 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
   }, [])
 
   /**
+   * Checks if current user has permission to modify department assignments
+   */
+  const checkUserPermissions = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('[useDepartmentDragDrop] No authenticated user')
+        return { hasPermission: false, reason: 'Not authenticated' }
+      }
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role, is_active, organization_id')
+        .eq('id', user.id)
+        .single()
+
+      console.log('[useDepartmentDragDrop] User profile:', {
+        role: profile?.role,
+        isActive: profile?.is_active,
+        organizationId: profile?.organization_id
+      })
+
+      if (!profile) {
+        return { hasPermission: false, reason: 'Profile not found' }
+      }
+
+      if (!profile.is_active) {
+        return { hasPermission: false, reason: 'User account is not active' }
+      }
+
+      if (profile.role !== 'master_admin') {
+        return {
+          hasPermission: false,
+          reason: `User role is '${profile.role}', but 'master_admin' is required to modify department assignments`
+        }
+      }
+
+      return { hasPermission: true, profile }
+    } catch (error) {
+      console.error('[useDepartmentDragDrop] Error checking permissions:', error)
+      return { hasPermission: false, reason: 'Error checking permissions' }
+    }
+  }, [])
+
+  /**
    * Handles drag end event
    */
   const handleDragEnd = useCallback(
@@ -264,6 +310,16 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         targetPosition,
         currentAssignmentsCount: assignments.length
       })
+
+      // Check permissions before proceeding
+      const permissionCheck = await checkUserPermissions()
+      if (!permissionCheck.hasPermission) {
+        console.error('[useDepartmentDragDrop] Permission denied:', permissionCheck.reason)
+        onError?.(permissionCheck.reason || 'You do not have permission to modify department assignments')
+        return
+      }
+
+      console.log('[useDepartmentDragDrop] ✓ User has permission to modify')
 
       setActiveId(null)
       setOverId(null)
@@ -373,12 +429,22 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         }
 
         // Validate that the operation actually affected rows
-        if (result && typeof result === 'object' && 'affected_rows' in result) {
-          console.log('[useDepartmentDragDrop] Database affected rows:', result.affected_rows)
-          if (result.affected_rows === 0) {
-            console.warn('[useDepartmentDragDrop] Warning: Operation returned 0 affected rows')
-          }
+        const affectedRows = result?.affected_rows || 0
+        console.log('[useDepartmentDragDrop] Database affected rows:', affectedRows)
+
+        if (affectedRows === 0) {
+          console.error('[useDepartmentDragDrop] CRITICAL: 0 rows affected - database write failed!')
+
+          // Rollback optimistic update
+          setAssignments(previousStateRef.current)
+
+          const errorMsg = 'Failed to save department move. The database did not update any rows. You may need master_admin role.'
+          setError(errorMsg)
+          onError?.(errorMsg)
+          return // Don't continue to success
         }
+
+        console.log('[useDepartmentDragDrop] ✓ Database write successful')
 
         // Add to undo stack
         setUndoStack(prev => {
@@ -396,6 +462,9 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
         // Reload to get accurate state
         console.log('[useDepartmentDragDrop] Reloading assignments from database')
         await loadAssignments()
+
+        // Verify the reload actually got data
+        console.log('[useDepartmentDragDrop] Assignments after reload:', assignments.length)
 
         onSuccess?.(
           `Moved ${item.custom_name || item.defaultName} to ${targetSectionId}`
