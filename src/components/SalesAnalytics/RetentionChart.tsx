@@ -37,7 +37,7 @@ export const RetentionChart: React.FC<RetentionChartProps> = ({ data }) => {
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, value, absoluteValue }) => `${name}: ${absoluteValue} (${formatPercentage(value ?? 0)})`}
+            label={({ name, value }) => `${name}: ${value} (${formatPercentage(value ?? 0)})`}
             outerRadius={80}
             fill="#8884d8"
             dataKey="value"

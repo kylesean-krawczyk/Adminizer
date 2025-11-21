@@ -7,7 +7,7 @@ import { VerticalId } from '../../config/types'
 import { useVertical } from '../../contexts/VerticalContext'
 import DashboardCustomizationTab from './Customization/DashboardCustomizationTab'
 import StatsCustomizationTab from './Customization/StatsCustomizationTab'
-import DepartmentCustomizationTab from './Customization/DepartmentCustomizationTab'
+import DepartmentCustomizationTab from './Customization/DepartmentCustomizationTabWithDnd'
 import BrandingCustomizationTab from './Customization/BrandingCustomizationTab'
 import VersionHistoryPanel from './Customization/VersionHistoryPanel'
 
