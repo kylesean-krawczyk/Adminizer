@@ -253,7 +253,7 @@ export const churchConfig: VerticalConfig = {
       { id: 'finance-accounting', name: 'Finance & Accounting', icon: Calculator, route: '/department/finance-accounting', color: 'green' },
       { id: 'sales', name: 'Donor Relations', icon: TrendingUp, route: '/department/sales', color: 'emerald', requiredFeature: 'donor-analytics' },
       { id: 'operations', name: 'Operations', icon: Cog, route: '/department/operations', color: 'purple' },
-      { id: 'customer-support', name: 'Member Care', icon: Headphones, route: '/department/customer-support', color: 'indigo' }
+      { id: 'member-care', name: 'Member Care', icon: Headphones, route: '/department/customer-support', color: 'indigo' }
     ],
     additionalDepartments: [
       { id: 'communications-marketing', name: 'Communications & Marketing', icon: Megaphone, route: '/department/marketing', color: 'pink' },
@@ -312,7 +312,7 @@ export const churchConfig: VerticalConfig = {
     'finance-accounting': 'green',
     'sales': 'emerald',
     'operations': 'purple',
-    'customer-support': 'indigo'
+    'member-care': 'indigo'
   },
 
   branding: {

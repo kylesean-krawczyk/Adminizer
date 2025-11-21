@@ -84,6 +84,20 @@ const DepartmentPage = () => {
         'Support team coordination'
       ]
     },
+    'member-care': {
+      title: 'Member Care',
+      description: 'Member services and support',
+      color: 'indigo',
+      icon: '🎧',
+      features: [
+        'Member records and profiles',
+        'Member communication tracking',
+        'Service request management',
+        'Member satisfaction tracking',
+        'Support team coordination',
+        'Member engagement programs'
+      ]
+    },
     'marketing': {
       title: 'Marketing',
       description: 'Marketing campaigns and lead generation',
