@@ -148,18 +148,45 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
   useEffect(() => {
     if (!vertical) return
 
-    // Get all departments from vertical config
-    const allDepartments = [
-      ...vertical.dashboardConfig.coreDepartments,
-      ...vertical.dashboardConfig.additionalDepartments
+    console.log('[useDepartmentDragDrop] Building department list from all navigation sources')
+
+    // Get ALL navigation items (not just dashboard config)
+    // This ensures UI Customization shows everything visible in the sidebar
+    const allNavigationItems = [
+      ...(vertical.navigation.primaryNav || []),
+      ...(vertical.navigation.departmentNav || []),
+      ...(vertical.navigation.operationsNav || []),
+      ...(vertical.navigation.adminNav || [])
     ]
 
+    console.log('[useDepartmentDragDrop] Total navigation items:', {
+      primary: vertical.navigation.primaryNav?.length || 0,
+      departments: vertical.navigation.departmentNav?.length || 0,
+      operations: vertical.navigation.operationsNav?.length || 0,
+      admin: vertical.navigation.adminNav?.length || 0,
+      total: allNavigationItems.length
+    })
+
+    // Normalize navigation items to have all required properties
+    const normalizedDepartments = allNavigationItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description || '',
+      icon: item.icon,
+      route: item.route,
+      color: item.color,
+      textColor: item.color ? `text-${item.color}-600` : 'text-gray-600',
+      bgColor: item.color ? `bg-${item.color}-50` : 'bg-gray-50',
+      requiredRole: item.requiredRole,
+      requiredFeature: item.requiredFeature
+    }))
+
     // Merge with assignments
-    const enriched: DndDepartmentItem[] = allDepartments.map(dept => {
+    const enriched: DndDepartmentItem[] = normalizedDepartments.map(dept => {
       const assignment = assignments.find(a => a.department_id === dept.id)
 
       if (assignment) {
-        // Has custom assignment
+        // Has custom assignment from database
         return {
           ...assignment,
           defaultName: dept.name,
@@ -171,14 +198,15 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
           requiredFeature: dept.requiredFeature
         }
       } else {
-        // Use default from config (determine section from navigation)
+        // Use default from config - determine section from navigation type
         const isInOpsNav = vertical.navigation.operationsNav?.some(d => d.id === dept.id)
         const isInAdminNav = vertical.navigation.adminNav?.some(d => d.id === dept.id)
+        const isInPrimaryNav = vertical.navigation.primaryNav?.some(d => d.id === dept.id)
 
         let defaultSectionId: SectionId = 'departments'
-        if (isInOpsNav) defaultSectionId = 'operations'
+        if (isInPrimaryNav) defaultSectionId = 'documents'
+        else if (isInOpsNav) defaultSectionId = 'operations'
         else if (isInAdminNav) defaultSectionId = 'admin'
-        else if (dept.id === 'documents') defaultSectionId = 'documents'
 
         return {
           id: `temp-${dept.id}`,
