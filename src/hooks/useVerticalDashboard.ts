@@ -21,11 +21,12 @@ export interface UseVerticalDashboardReturn {
 
 /**
  * Helper to convert merged department to DepartmentButton format
+ * Prioritizes custom names/descriptions from database over defaults
  */
 const toDepartmentButton = (dept: MergedDepartment): DepartmentButton => ({
   id: dept.id,
-  name: dept.name,
-  description: dept.description || '',
+  name: dept.customName || dept.name,
+  description: dept.customDescription || dept.description || '',
   icon: dept.icon,
   color: dept.color || 'bg-gray-600 hover:bg-gray-700',
   textColor: dept.color ? `text-${dept.color}-600` : 'text-gray-600',
@@ -62,6 +63,35 @@ export function useVerticalDashboard(): UseVerticalDashboardReturn {
     operations: departmentStructure?.operations?.length || 0,
     admin: departmentStructure?.admin?.length || 0
   })
+
+  // Debug: Log custom names being applied
+  if (departmentStructure?.departments) {
+    const customizedDepts = departmentStructure.departments.filter(d => d.customName)
+    if (customizedDepts.length > 0) {
+      console.log('[useVerticalDashboard] Applying custom names to departments:',
+        customizedDepts.map(d => ({
+          id: d.id,
+          defaultName: d.name,
+          customName: d.customName,
+          willDisplay: d.customName || d.name
+        }))
+      )
+    }
+  }
+
+  if (departmentStructure?.operations) {
+    const customizedOps = departmentStructure.operations.filter(d => d.customName)
+    if (customizedOps.length > 0) {
+      console.log('[useVerticalDashboard] Applying custom names to operations:',
+        customizedOps.map(d => ({
+          id: d.id,
+          defaultName: d.name,
+          customName: d.customName,
+          willDisplay: d.customName || d.name
+        }))
+      )
+    }
+  }
 
   // Use database-driven structure if available, fall back to config
   // Convert all sections to DepartmentButton format for dashboard

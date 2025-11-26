@@ -72,10 +72,10 @@ const CollapsibleSidebar = () => {
     console.log('[CollapsibleSidebar] Department structure:', {
       usingDatabase: !!departmentStructure,
       loading: departmentStructureLoading,
-      primaryNav: primaryNav.map(d => ({ id: d.id, name: d.name })),
-      departments: coreDepartments.map(d => ({ id: d.id, name: d.name })),
-      operations: operationsCategories.map(d => ({ id: d.id, name: d.name })),
-      admin: adminItems.map(d => ({ id: d.id, name: d.name }))
+      primaryNav: primaryNav.map(d => ({ id: d.id, name: d.name, customName: (d as any).customName })),
+      departments: coreDepartments.map(d => ({ id: d.id, name: d.name, customName: (d as any).customName, displayName: (d as any).customName || d.name })),
+      operations: operationsCategories.map(d => ({ id: d.id, name: d.name, customName: (d as any).customName, displayName: (d as any).customName || d.name })),
+      admin: adminItems.map(d => ({ id: d.id, name: d.name, customName: (d as any).customName }))
     })
   }, [departmentStructure, departmentStructureLoading, primaryNav, coreDepartments, operationsCategories, adminItems])
 
@@ -122,10 +122,10 @@ const CollapsibleSidebar = () => {
                       ? 'text-purple-600 bg-purple-50 font-medium'
                       : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
                   }`}
-                  title={!isExpanded ? item.name : undefined}
+                  title={!isExpanded ? ((item as any).customName || item.name) : undefined}
                 >
                   {Icon && <Icon className={`h-5 w-5 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
-                  {isExpanded && <span className="text-sm">{item.name}</span>}
+                  {isExpanded && <span className="text-sm">{(item as any).customName || item.name}</span>}
                 </button>
               </div>
             )
@@ -167,10 +167,10 @@ const CollapsibleSidebar = () => {
                           ? 'text-purple-600 bg-purple-50 font-medium'
                           : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                       }`}
-                      title={dept.name}
+                      title={(dept as any).customName || dept.name}
                     >
                       {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
-                      <span className="truncate">{dept.name}</span>
+                      <span className="truncate">{(dept as any).customName || dept.name}</span>
                     </button>
                   )
                 })}
@@ -215,10 +215,10 @@ const CollapsibleSidebar = () => {
                           ? 'text-purple-600 bg-purple-50 font-medium'
                           : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                       }`}
-                      title={op.name}
+                      title={(op as any).customName || op.name}
                     >
                       {OpIcon && <OpIcon className={`h-4 w-4 flex-shrink-0 ${op.route && isActive(op.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
-                      <span className="truncate">{op.name}</span>
+                      <span className="truncate">{(op as any).customName || op.name}</span>
                     </button>
                   )
                 })}
@@ -263,10 +263,10 @@ const CollapsibleSidebar = () => {
                             ? 'text-purple-600 bg-purple-50 font-medium'
                             : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                         }`}
-                        title={item.name}
+                        title={(item as any).customName || item.name}
                       >
                         {ItemIcon && <ItemIcon className={`h-4 w-4 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
-                        <span className="truncate">{item.name}</span>
+                        <span className="truncate">{(item as any).customName || item.name}</span>
                       </button>
                     )
                   })}
