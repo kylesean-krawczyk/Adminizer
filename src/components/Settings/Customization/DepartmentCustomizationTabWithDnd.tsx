@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -51,6 +51,15 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState<SectionId | null>(null)
+
+  // Local state for unsaved edits (allows responsive typing without immediate saves)
+  const [localEdits, setLocalEdits] = useState<Record<string, {
+    customName?: string;
+    customDescription?: string;
+  }>>({})
+
+  // Debounce timers for auto-save
+  const saveTimers = useRef<Record<string, NodeJS.Timeout>>({})
 
   // Drag and drop hook
   const {
@@ -195,79 +204,145 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
   )
 
   const handleNameChange = useCallback(
-    async (deptId: string, newName: string) => {
-      try {
-        console.log('[DepartmentCustomizationTab] Saving custom name:', { deptId, newName })
+    (deptId: string, newName: string) => {
+      console.log('[DepartmentCustomizationTab] Name changed (local):', { deptId, newName })
 
-        // Find the current department assignment
-        const currentDept = dndItems.find(d => d.department_id === deptId)
-        if (!currentDept) {
-          console.error('[DepartmentCustomizationTab] Department not found:', deptId)
-          return
+      // 1. Update local state immediately for responsive typing
+      setLocalEdits(prev => ({
+        ...prev,
+        [deptId]: {
+          ...prev[deptId],
+          customName: newName
         }
+      }))
 
-        // Save to database
-        await saveDepartmentAssignment({
-          organizationId,
-          verticalId,
-          departmentId: deptId,
-          departmentKey: deptId,
-          sectionId: currentDept.section_id,
-          displayOrder: currentDept.display_order,
-          isVisible: currentDept.is_visible,
-          customName: newName || undefined,  // Empty string becomes undefined
-          customDescription: currentDept.custom_description || undefined
-        })
-
-        // Reload assignments to reflect changes
-        await reloadAssignments()
-
-        console.log('[DepartmentCustomizationTab] Custom name saved successfully')
-      } catch (error) {
-        console.error('[DepartmentCustomizationTab] Error saving custom name:', error)
-        setErrorMessage('Failed to save custom name')
-        setTimeout(() => setErrorMessage(null), 5000)
+      // 2. Clear existing debounce timer for this department
+      if (saveTimers.current[deptId]) {
+        clearTimeout(saveTimers.current[deptId])
       }
+
+      // 3. Set new debounce timer (1 second after last keystroke)
+      saveTimers.current[deptId] = setTimeout(async () => {
+        try {
+          console.log('[DepartmentCustomizationTab] Auto-saving custom name:', { deptId, newName })
+
+          const currentDept = dndItems.find(d => d.department_id === deptId)
+          if (!currentDept) {
+            console.error('[DepartmentCustomizationTab] Department not found:', deptId)
+            return
+          }
+
+          // Get current description from local edits or database
+          const currentDescription = localEdits[deptId]?.customDescription !== undefined
+            ? localEdits[deptId].customDescription
+            : currentDept.custom_description
+
+          await saveDepartmentAssignment({
+            organizationId,
+            verticalId,
+            departmentId: deptId,
+            departmentKey: deptId,
+            sectionId: currentDept.section_id,
+            displayOrder: currentDept.display_order,
+            isVisible: currentDept.is_visible,
+            customName: newName || undefined,
+            customDescription: currentDescription || undefined
+          })
+
+          // Clear local edit for this field after successful save
+          setLocalEdits(prev => {
+            const updated = { ...prev }
+            if (updated[deptId]) {
+              delete updated[deptId].customName
+              if (!updated[deptId].customDescription) {
+                delete updated[deptId]
+              }
+            }
+            return updated
+          })
+
+          await reloadAssignments()
+          console.log('[DepartmentCustomizationTab] Auto-save successful')
+
+        } catch (error) {
+          console.error('[DepartmentCustomizationTab] Auto-save failed:', error)
+          setErrorMessage('Failed to save custom name')
+          setTimeout(() => setErrorMessage(null), 5000)
+        }
+      }, 1000) // Wait 1 second after last keystroke
     },
-    [dndItems, organizationId, verticalId, reloadAssignments]
+    [dndItems, organizationId, verticalId, reloadAssignments, localEdits]
   )
 
   const handleDescriptionChange = useCallback(
-    async (deptId: string, newDescription: string) => {
-      try {
-        console.log('[DepartmentCustomizationTab] Saving custom description:', { deptId, newDescription })
+    (deptId: string, newDescription: string) => {
+      console.log('[DepartmentCustomizationTab] Description changed (local):', { deptId, newDescription })
 
-        // Find the current department assignment
-        const currentDept = dndItems.find(d => d.department_id === deptId)
-        if (!currentDept) {
-          console.error('[DepartmentCustomizationTab] Department not found:', deptId)
-          return
+      // 1. Update local state immediately for responsive typing
+      setLocalEdits(prev => ({
+        ...prev,
+        [deptId]: {
+          ...prev[deptId],
+          customDescription: newDescription
         }
+      }))
 
-        // Save to database
-        await saveDepartmentAssignment({
-          organizationId,
-          verticalId,
-          departmentId: deptId,
-          departmentKey: deptId,
-          sectionId: currentDept.section_id,
-          displayOrder: currentDept.display_order,
-          isVisible: currentDept.is_visible,
-          customName: currentDept.custom_name || undefined,
-          customDescription: newDescription || undefined  // Empty string becomes undefined
-        })
-
-        // Reload assignments to reflect changes
-        await reloadAssignments()
-
-        console.log('[DepartmentCustomizationTab] Custom description saved successfully')
-      } catch (error) {
-        console.error('[DepartmentCustomizationTab] Error saving custom description:', error)
-        setErrorMessage('Failed to save custom description')
-        setTimeout(() => setErrorMessage(null), 5000)
+      // 2. Clear existing debounce timer for this department
+      if (saveTimers.current[deptId]) {
+        clearTimeout(saveTimers.current[deptId])
       }
+
+      // 3. Set new debounce timer (1 second after last keystroke)
+      saveTimers.current[deptId] = setTimeout(async () => {
+        try {
+          console.log('[DepartmentCustomizationTab] Auto-saving custom description:', { deptId, newDescription })
+
+          const currentDept = dndItems.find(d => d.department_id === deptId)
+          if (!currentDept) {
+            console.error('[DepartmentCustomizationTab] Department not found:', deptId)
+            return
+          }
+
+          // Get current name from local edits or database
+          const currentName = localEdits[deptId]?.customName !== undefined
+            ? localEdits[deptId].customName
+            : currentDept.custom_name
+
+          await saveDepartmentAssignment({
+            organizationId,
+            verticalId,
+            departmentId: deptId,
+            departmentKey: deptId,
+            sectionId: currentDept.section_id,
+            displayOrder: currentDept.display_order,
+            isVisible: currentDept.is_visible,
+            customName: currentName || undefined,
+            customDescription: newDescription || undefined
+          })
+
+          // Clear local edit for this field after successful save
+          setLocalEdits(prev => {
+            const updated = { ...prev }
+            if (updated[deptId]) {
+              delete updated[deptId].customDescription
+              if (!updated[deptId].customName) {
+                delete updated[deptId]
+              }
+            }
+            return updated
+          })
+
+          await reloadAssignments()
+          console.log('[DepartmentCustomizationTab] Auto-save successful')
+
+        } catch (error) {
+          console.error('[DepartmentCustomizationTab] Auto-save failed:', error)
+          setErrorMessage('Failed to save custom description')
+          setTimeout(() => setErrorMessage(null), 5000)
+        }
+      }, 1000) // Wait 1 second after last keystroke
     },
-    [dndItems, organizationId, verticalId, reloadAssignments]
+    [dndItems, organizationId, verticalId, reloadAssignments, localEdits]
   )
 
   const handleResetDepartment = useCallback(
@@ -275,7 +350,19 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
       try {
         console.log('[DepartmentCustomizationTab] Resetting department:', { deptId })
 
-        // Find the current department assignment
+        // Clear any pending debounce timers
+        if (saveTimers.current[deptId]) {
+          clearTimeout(saveTimers.current[deptId])
+          delete saveTimers.current[deptId]
+        }
+
+        // Clear local edits
+        setLocalEdits(prev => {
+          const updated = { ...prev }
+          delete updated[deptId]
+          return updated
+        })
+
         const currentDept = dndItems.find(d => d.department_id === deptId)
         if (!currentDept) {
           console.error('[DepartmentCustomizationTab] Department not found:', deptId)
@@ -291,11 +378,10 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
           sectionId: currentDept.section_id,
           displayOrder: currentDept.display_order,
           isVisible: currentDept.is_visible,
-          customName: undefined,  // Reset to default
-          customDescription: undefined  // Reset to default
+          customName: undefined,
+          customDescription: undefined
         })
 
-        // Reload assignments to reflect changes
         await reloadAssignments()
 
         console.log('[DepartmentCustomizationTab] Department reset successfully')
@@ -312,20 +398,30 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
 
   const getCustomName = useCallback(
     (deptId: string) => {
-      // Read from database via dndItems instead of draft
+      // Check local edits first (unsaved changes take precedence)
+      if (localEdits[deptId]?.customName !== undefined) {
+        return localEdits[deptId].customName || ''
+      }
+
+      // Fall back to database value
       const dept = dndItems.find(d => d.department_id === deptId)
       return dept?.custom_name || ''
     },
-    [dndItems]
+    [dndItems, localEdits]
   )
 
   const getCustomDescription = useCallback(
     (deptId: string) => {
-      // Read from database via dndItems instead of draft
+      // Check local edits first (unsaved changes take precedence)
+      if (localEdits[deptId]?.customDescription !== undefined) {
+        return localEdits[deptId].customDescription || ''
+      }
+
+      // Fall back to database value
       const dept = dndItems.find(d => d.department_id === deptId)
       return dept?.custom_description || ''
     },
-    [dndItems]
+    [dndItems, localEdits]
   )
 
   const isVisible = useCallback(
@@ -336,6 +432,15 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
     },
     [dndItems]
   )
+
+  // Cleanup: Clear all debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      console.log('[DepartmentCustomizationTab] Cleanup: clearing all debounce timers')
+      Object.values(saveTimers.current).forEach(timer => clearTimeout(timer))
+      saveTimers.current = {}
+    }
+  }, [])
 
   // Active department being dragged
   const activeDepartment = useMemo(() => {
