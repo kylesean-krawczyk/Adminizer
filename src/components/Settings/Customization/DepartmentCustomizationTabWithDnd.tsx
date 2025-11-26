@@ -26,6 +26,7 @@ import { useDepartmentDragDrop } from '../../../hooks/useDepartmentDragDrop'
 import { useDepartmentRealtimeSync } from '../../../hooks/useDepartmentRealtimeSync'
 import { useUserManagement } from '../../../hooks'
 import { SectionDropzone } from './SectionDropzone'
+import { saveDepartmentAssignment } from '../../../services/departmentAssignmentService'
 
 interface DepartmentCustomizationTabProps {
   draft: CustomizationDraft
@@ -194,90 +195,146 @@ const DepartmentCustomizationTabWithDnd: React.FC<DepartmentCustomizationTabProp
   )
 
   const handleNameChange = useCallback(
-    (deptId: string, newName: string) => {
-      const departments = draft.department_config.departments || []
-      const existingDept = departments.find(d => d.id === deptId)
+    async (deptId: string, newName: string) => {
+      try {
+        console.log('[DepartmentCustomizationTab] Saving custom name:', { deptId, newName })
 
-      if (existingDept) {
-        updateDraft('department_config', {
-          ...draft.department_config,
-          departments: departments.map(d =>
-            d.id === deptId ? { ...d, name: newName } : d
-          )
+        // Find the current department assignment
+        const currentDept = dndItems.find(d => d.department_id === deptId)
+        if (!currentDept) {
+          console.error('[DepartmentCustomizationTab] Department not found:', deptId)
+          return
+        }
+
+        // Save to database
+        await saveDepartmentAssignment({
+          organizationId,
+          verticalId,
+          departmentId: deptId,
+          departmentKey: deptId,
+          sectionId: currentDept.section_id,
+          displayOrder: currentDept.display_order,
+          isVisible: currentDept.is_visible,
+          customName: newName || undefined,  // Empty string becomes undefined
+          customDescription: currentDept.custom_description || undefined
         })
-      } else {
-        updateDraft('department_config', {
-          ...draft.department_config,
-          departments: [...departments, { id: deptId, name: newName }]
-        })
+
+        // Reload assignments to reflect changes
+        await reloadAssignments()
+
+        console.log('[DepartmentCustomizationTab] Custom name saved successfully')
+      } catch (error) {
+        console.error('[DepartmentCustomizationTab] Error saving custom name:', error)
+        setErrorMessage('Failed to save custom name')
+        setTimeout(() => setErrorMessage(null), 5000)
       }
     },
-    [draft, updateDraft]
+    [dndItems, organizationId, verticalId, reloadAssignments]
   )
 
   const handleDescriptionChange = useCallback(
-    (deptId: string, newDescription: string) => {
-      const departments = draft.department_config.departments || []
-      const existingDept = departments.find(d => d.id === deptId)
+    async (deptId: string, newDescription: string) => {
+      try {
+        console.log('[DepartmentCustomizationTab] Saving custom description:', { deptId, newDescription })
 
-      if (existingDept) {
-        updateDraft('department_config', {
-          ...draft.department_config,
-          departments: departments.map(d =>
-            d.id === deptId ? { ...d, description: newDescription } : d
-          )
+        // Find the current department assignment
+        const currentDept = dndItems.find(d => d.department_id === deptId)
+        if (!currentDept) {
+          console.error('[DepartmentCustomizationTab] Department not found:', deptId)
+          return
+        }
+
+        // Save to database
+        await saveDepartmentAssignment({
+          organizationId,
+          verticalId,
+          departmentId: deptId,
+          departmentKey: deptId,
+          sectionId: currentDept.section_id,
+          displayOrder: currentDept.display_order,
+          isVisible: currentDept.is_visible,
+          customName: currentDept.custom_name || undefined,
+          customDescription: newDescription || undefined  // Empty string becomes undefined
         })
-      } else {
-        updateDraft('department_config', {
-          ...draft.department_config,
-          departments: [...departments, { id: deptId, description: newDescription }]
-        })
+
+        // Reload assignments to reflect changes
+        await reloadAssignments()
+
+        console.log('[DepartmentCustomizationTab] Custom description saved successfully')
+      } catch (error) {
+        console.error('[DepartmentCustomizationTab] Error saving custom description:', error)
+        setErrorMessage('Failed to save custom description')
+        setTimeout(() => setErrorMessage(null), 5000)
       }
     },
-    [draft, updateDraft]
+    [dndItems, organizationId, verticalId, reloadAssignments]
   )
 
   const handleResetDepartment = useCallback(
-    (deptId: string) => {
-      const departments = draft.department_config.departments || []
-      const existingDept = departments.find(d => d.id === deptId)
+    async (deptId: string) => {
+      try {
+        console.log('[DepartmentCustomizationTab] Resetting department:', { deptId })
 
-      if (existingDept) {
-        const updatedDept = { ...existingDept }
-        delete updatedDept.name
-        delete updatedDept.description
+        // Find the current department assignment
+        const currentDept = dndItems.find(d => d.department_id === deptId)
+        if (!currentDept) {
+          console.error('[DepartmentCustomizationTab] Department not found:', deptId)
+          return
+        }
 
-        updateDraft('department_config', {
-          ...draft.department_config,
-          departments: departments.map(d => (d.id === deptId ? updatedDept : d))
+        // Clear custom name and description by setting them to undefined
+        await saveDepartmentAssignment({
+          organizationId,
+          verticalId,
+          departmentId: deptId,
+          departmentKey: deptId,
+          sectionId: currentDept.section_id,
+          displayOrder: currentDept.display_order,
+          isVisible: currentDept.is_visible,
+          customName: undefined,  // Reset to default
+          customDescription: undefined  // Reset to default
         })
+
+        // Reload assignments to reflect changes
+        await reloadAssignments()
+
+        console.log('[DepartmentCustomizationTab] Department reset successfully')
+        setSuccessMessage('Department reset to defaults')
+        setTimeout(() => setSuccessMessage(null), 3000)
+      } catch (error) {
+        console.error('[DepartmentCustomizationTab] Error resetting department:', error)
+        setErrorMessage('Failed to reset department')
+        setTimeout(() => setErrorMessage(null), 5000)
       }
     },
-    [draft, updateDraft]
+    [dndItems, organizationId, verticalId, reloadAssignments]
   )
 
   const getCustomName = useCallback(
     (deptId: string) => {
-      const dept = draft.department_config.departments?.find(d => d.id === deptId)
-      return dept?.name || ''
+      // Read from database via dndItems instead of draft
+      const dept = dndItems.find(d => d.department_id === deptId)
+      return dept?.custom_name || ''
     },
-    [draft]
+    [dndItems]
   )
 
   const getCustomDescription = useCallback(
     (deptId: string) => {
-      const dept = draft.department_config.departments?.find(d => d.id === deptId)
-      return dept?.description || ''
+      // Read from database via dndItems instead of draft
+      const dept = dndItems.find(d => d.department_id === deptId)
+      return dept?.custom_description || ''
     },
-    [draft]
+    [dndItems]
   )
 
   const isVisible = useCallback(
     (deptId: string) => {
-      const dept = draft.department_config.departments?.find(d => d.id === deptId)
-      return dept?.visible ?? true
+      // Read from database via dndItems instead of draft
+      const dept = dndItems.find(d => d.department_id === deptId)
+      return dept?.is_visible ?? true
     },
-    [draft]
+    [dndItems]
   )
 
   // Active department being dragged
