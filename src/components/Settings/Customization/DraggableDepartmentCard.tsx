@@ -101,14 +101,37 @@ export const DraggableDepartmentCard: React.FC<DraggableDepartmentCardProps> = (
           </div>
 
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900">
-              {department.defaultName}
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium text-gray-900">
+                {department.defaultName}
+              </h4>
               {hasCustomization && (
-                <span className="ml-2 text-xs text-blue-600 font-normal">(customized)</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                  Customized
+                </span>
               )}
-            </h4>
-            <p className="text-sm text-gray-500">
-              ID: {department.department_id} • Section: {department.section_id}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                department.section_id === 'documents' ? 'bg-gray-100 text-gray-700' :
+                department.section_id === 'departments' ? 'bg-purple-100 text-purple-700' :
+                department.section_id === 'operations' ? 'bg-blue-100 text-blue-700' :
+                department.section_id === 'admin' ? 'bg-indigo-100 text-indigo-700' :
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {department.section_id === 'documents' ? 'Document Center' :
+                 department.section_id === 'departments' ? 'Core Ministry' :
+                 department.section_id === 'operations' ? 'Operations' :
+                 department.section_id === 'admin' ? 'Admin' :
+                 department.section_id}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              <span className="font-mono">{department.department_id}</span>
+              {department.route && (
+                <>
+                  <span className="mx-1">•</span>
+                  <span className="text-gray-400">{department.route}</span>
+                </>
+              )}
             </p>
           </div>
         </div>

@@ -1,8 +1,9 @@
-import { Settings, Building2, Info, GitBranch, Shield, FileText, Clock, Users, CheckCircle } from 'lucide-react'
+import { Settings, Info, Shield, FileText, Clock, Users, CheckCircle } from 'lucide-react'
 import { useDocuments } from '../hooks'
 import { useUserManagement } from '../hooks'
 import { useVerticalDashboard } from '../hooks'
 import { useTerminology } from '../hooks'
+import { useDepartmentRealtimeSync } from '../hooks/useDepartmentRealtimeSync'
 import { usePageContext } from '../contexts/PageContextContext'
 import { format, isAfter, isBefore, addDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
@@ -30,11 +31,27 @@ const Dashboard = () => {
     subtitle: dashboardSubtitle,
     stats: dashboardStats,
     coreDepartments,
+    operationsDepartments,
+    adminDepartments,
     additionalDepartments
   } = useVerticalDashboard()
   const { term } = useTerminology()
   const navigate = useNavigate()
-  const { vertical, customizationLoaded } = useVertical()
+  const { vertical, customizationLoaded, refetchDepartmentStructure } = useVertical()
+
+  // Add realtime sync for department customizations
+  const organizationId = userProfile?.organization_id || ''
+  const verticalId = (userProfile?.active_vertical || 'church') as any
+
+  useDepartmentRealtimeSync({
+    organizationId,
+    verticalId,
+    onUpdate: () => {
+      console.log('[Dashboard] Department customization changed - refreshing structure')
+      refetchDepartmentStructure()
+    },
+    enabled: !!organizationId && !!verticalId
+  })
   const { updateContext } = usePageContext()
 
   const loading = documentsLoading || userLoading
@@ -134,8 +151,12 @@ const Dashboard = () => {
     })
   }, [documents, updateContext])
 
-  // Combine all departments from vertical configuration
+  // Keep separate sections for proper display
   const allDepartments = [...coreDepartments, ...additionalDepartments]
+
+  // Check if we have any items in each section
+  const hasOperations = operationsDepartments.length > 0
+  const hasAdmin = adminDepartments.length > 0 && isAdmin
 
   // Get recent documents (last 5)
   const recentDocuments = documents.slice(0, 5)
@@ -150,9 +171,6 @@ const Dashboard = () => {
     navigate(route)
   }
 
-  const handleOperationsClick = () => {
-    navigate('/operations')
-  }
 
   // Show organization setup if user doesn't have one
   if (!loading && userProfile && !userProfile.organization_id) {
@@ -310,108 +328,133 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Business Departments */}
-      <div className="bg-white rounded-lg shadow p-8">
-        <div className="mb-6">
-          <h3 className="text-2xl font-bold text-gray-900">{dashboardTitle}</h3>
-          <p className="text-gray-600 mt-2">{dashboardSubtitle}</p>
-        </div>
-
-        <div className="department-card-grid">
-          {allDepartments.map((department) => (
-            <button
-              key={department.id}
-              onClick={() => handleDepartmentClick(department.route)}
-              className="department-card"
-              style={{
-                '--card-border-color': vertical.branding.colors.borders,
-                '--card-hover-border-color': vertical.branding.colors.primary,
-                '--card-icon-color': vertical.branding.colors.accent,
-                '--card-hover-icon-color': vertical.branding.colors.primary,
-                '--card-hover-title-color': vertical.branding.colors.primary,
-                '--card-description-color': vertical.branding.colors.text.secondary
-              } as React.CSSProperties}
-              aria-label={`Navigate to ${department.name}: ${department.description}`}
-            >
-              <div className="department-card-icon">
-                <department.icon className="h-12 w-12" />
-              </div>
-              <h4 className="department-card-title">
-                {department.name}
-              </h4>
-              <p className="department-card-description">
-                {department.description}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Operations Access */}
-      <div className="bg-white rounded-lg shadow p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">{term('businessOperations', { capitalize: 'title' })}</h3>
-            <p className="text-gray-600 mt-2">Access administrative and operational tools</p>
+      {/* Core Business Departments */}
+      {allDepartments.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-8">
+          <div className="mb-6">
+            <h3 className="text-2xl font-bold text-gray-900">{dashboardTitle}</h3>
+            <p className="text-gray-600 mt-2">{dashboardSubtitle}</p>
           </div>
-          <button
-            onClick={handleOperationsClick}
-            className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4 text-white transition-all duration-200 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            <div className="flex items-center space-x-3">
-              <Building2 className="h-6 w-6" />
-              <span className="text-lg font-semibold">Operations Center</span>
-            </div>
-            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
-          </button>
-        </div>
 
-        <div className="space-y-4">
-          <div className="bg-blue-50 rounded-lg p-6">
-            <div className="flex items-start space-x-4">
-              <div className="bg-blue-100 rounded-lg p-3">
-                <Settings className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="text-lg font-semibold text-blue-900 mb-2">{term('operations', { capitalize: 'title' })} Center</h4>
-                <p className="text-blue-800 mb-4">
-                  Access HR, Accounting, Legal, IT, and other administrative functions.
-                  Manage integrations, compliance, and {term('organization')} {term('operations')}.
+          <div className="department-card-grid">
+            {allDepartments.map((department) => (
+              <button
+                key={department.id}
+                onClick={() => handleDepartmentClick(department.route)}
+                className="department-card"
+                style={{
+                  '--card-border-color': vertical.branding.colors.borders,
+                  '--card-hover-border-color': vertical.branding.colors.primary,
+                  '--card-icon-color': vertical.branding.colors.accent,
+                  '--card-hover-icon-color': vertical.branding.colors.primary,
+                  '--card-hover-title-color': vertical.branding.colors.primary,
+                  '--card-description-color': vertical.branding.colors.text.secondary
+                } as React.CSSProperties}
+                aria-label={`Navigate to ${department.name}: ${department.description}`}
+              >
+                <div className="department-card-icon">
+                  <department.icon className="h-12 w-12" />
+                </div>
+                <h4 className="department-card-title">
+                  {department.name}
+                </h4>
+                <p className="department-card-description">
+                  {department.description}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-sm">HR Management</span>
-                  <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-sm">Financial Operations</span>
-                  <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-sm">Legal Compliance</span>
-                  <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-sm">IT & Technology</span>
-                </div>
-              </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Operations Center Departments */}
+      {hasOperations && (
+        <div className="bg-white rounded-lg shadow p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <Settings className="h-7 w-7 text-blue-600" />
+                Operations Center
+              </h3>
+              <p className="text-gray-600 mt-2">Administrative and operational tools for your organization</p>
             </div>
           </div>
 
-          {isAdmin && (
-            <div className="bg-green-50 rounded-lg p-6 border-2 border-green-100">
-              <div className="flex items-start space-x-4">
-                <div className="bg-green-100 rounded-lg p-3">
-                  <GitBranch className="h-6 w-6 text-green-600" />
+          <div className="department-card-grid">
+            {operationsDepartments.map((department) => (
+              <button
+                key={department.id}
+                onClick={() => handleDepartmentClick(department.route)}
+                className="department-card"
+                style={{
+                  '--card-border-color': vertical.branding.colors.borders,
+                  '--card-hover-border-color': '#3b82f6',
+                  '--card-icon-color': '#3b82f6',
+                  '--card-hover-icon-color': '#2563eb',
+                  '--card-hover-title-color': '#2563eb',
+                  '--card-description-color': vertical.branding.colors.text.secondary
+                } as React.CSSProperties}
+                aria-label={`Navigate to ${department.name}: ${department.description}`}
+              >
+                <div className="department-card-icon">
+                  <department.icon className="h-12 w-12" />
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-green-900 mb-2">{term('employee', { capitalize: 'first' })} Onboarding Workflows</h4>
-                  <p className="text-green-800 mb-4">
-                    Automate your onboarding process with AI-guided workflows. Collect information, get approvals, and set up new {term('employees')} systematically.
-                  </p>
-                  <button
-                    onClick={() => navigate('/workflows')}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <GitBranch className="h-4 w-4" />
-                    <span>Manage Workflows</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+                <h4 className="department-card-title">
+                  {department.name}
+                </h4>
+                <p className="department-card-description">
+                  {department.description}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Admin Section */}
+      {hasAdmin && (
+        <div className="bg-white rounded-lg shadow p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <Shield className="h-7 w-7 text-purple-600" />
+                Administration
+              </h3>
+              <p className="text-gray-600 mt-2">System administration and configuration tools</p>
+            </div>
+          </div>
+
+          <div className="department-card-grid">
+            {adminDepartments.map((department) => (
+              <button
+                key={department.id}
+                onClick={() => handleDepartmentClick(department.route)}
+                className="department-card"
+                style={{
+                  '--card-border-color': vertical.branding.colors.borders,
+                  '--card-hover-border-color': '#9333ea',
+                  '--card-icon-color': '#9333ea',
+                  '--card-hover-icon-color': '#7e22ce',
+                  '--card-hover-title-color': '#7e22ce',
+                  '--card-description-color': vertical.branding.colors.text.secondary
+                } as React.CSSProperties}
+                aria-label={`Navigate to ${department.name}: ${department.description}`}
+              >
+                <div className="department-card-icon">
+                  <department.icon className="h-12 w-12" />
+                </div>
+                <h4 className="department-card-title">
+                  {department.name}
+                </h4>
+                <p className="department-card-description">
+                  {department.description}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* Document Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

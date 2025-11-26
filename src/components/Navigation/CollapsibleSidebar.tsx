@@ -167,6 +167,7 @@ const CollapsibleSidebar = () => {
                           ? 'text-purple-600 bg-purple-50 font-medium'
                           : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                       }`}
+                      title={dept.name}
                     >
                       {DeptIcon && <DeptIcon className={`h-4 w-4 flex-shrink-0 ${dept.route && isActive(dept.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                       <span className="truncate">{dept.name}</span>
@@ -214,6 +215,7 @@ const CollapsibleSidebar = () => {
                           ? 'text-purple-600 bg-purple-50 font-medium'
                           : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                       }`}
+                      title={op.name}
                     >
                       {OpIcon && <OpIcon className={`h-4 w-4 flex-shrink-0 ${op.route && isActive(op.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                       <span className="truncate">{op.name}</span>
@@ -261,6 +263,7 @@ const CollapsibleSidebar = () => {
                             ? 'text-purple-600 bg-purple-50 font-medium'
                             : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                         }`}
+                        title={item.name}
                       >
                         {ItemIcon && <ItemIcon className={`h-4 w-4 flex-shrink-0 ${item.route && isActive(item.route) ? 'text-purple-600' : 'text-gray-500'}`} />}
                         <span className="truncate">{item.name}</span>
