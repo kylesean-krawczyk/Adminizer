@@ -106,9 +106,13 @@ export function mergeDepartmentsWithAssignments(
     return mergedDept
   })
 
+  const customizedCount = merged.filter(d => d.hasCustomization).length
+  const defaultCount = merged.filter(d => !d.hasCustomization).length
+
   console.log('[departmentMerger] Merged departments:', {
     total: merged.length,
-    customized: merged.filter(d => d.hasCustomization).length,
+    customized: customizedCount,
+    usingDefaults: defaultCount,
     visible: merged.filter(d => d.isVisible).length,
     merged: merged.map(d => ({
       id: d.id,
@@ -116,9 +120,17 @@ export function mergeDepartmentsWithAssignments(
       section: d.sectionId,
       order: d.displayOrder,
       visible: d.isVisible,
-      customized: d.hasCustomization
+      customized: d.hasCustomization,
+      orderSource: d.hasCustomization ? 'database' : 'default'
     }))
   })
+
+  if (defaultCount > 0) {
+    console.warn('[departmentMerger] WARNING: Some items using default order (not from database):', {
+      count: defaultCount,
+      items: merged.filter(d => !d.hasCustomization).map(d => d.id)
+    })
+  }
 
   // 4. Group by section
   const sections: SectionedDepartments = {

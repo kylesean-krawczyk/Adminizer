@@ -16,6 +16,7 @@ import {
   saveDepartmentAssignment,
   TableMissingError
 } from '../services/departmentAssignmentService'
+import { migrateDepartmentCustomizations, initializeAssignments } from '../services/migrateDepartmentCustomizations'
 import { useVertical } from '../contexts/VerticalContext'
 import { supabase } from '../lib/supabase'
 
@@ -95,8 +96,42 @@ export const useDepartmentDragDrop = (options: UseDepartmentDragDropOptions) => 
       const data = await getDepartmentAssignments(organizationId, verticalId)
 
       console.log('[useDepartmentDragDrop] Loaded assignments:', data.length)
-      setAssignments(data)
-      previousStateRef.current = [...data]
+
+      // If no assignments exist, auto-initialize from old customizations or base config
+      if (data.length === 0) {
+        console.log('[useDepartmentDragDrop] No assignments found - attempting migration/initialization')
+
+        // Try migrating old customizations first
+        const migrationResult = await migrateDepartmentCustomizations(organizationId, verticalId)
+
+        if (migrationResult.success && migrationResult.migratedCount > 0) {
+          console.log('[useDepartmentDragDrop] Migration successful:', migrationResult.migratedCount, 'items migrated')
+          // Reload assignments after migration
+          const migratedData = await getDepartmentAssignments(organizationId, verticalId)
+          setAssignments(migratedData)
+          previousStateRef.current = [...migratedData]
+        } else {
+          // No old customizations to migrate, initialize from base config
+          console.log('[useDepartmentDragDrop] No old customizations - initializing from base config')
+          const initResult = await initializeAssignments(organizationId, verticalId)
+
+          if (initResult.success && initResult.initializedCount > 0) {
+            console.log('[useDepartmentDragDrop] Initialization successful:', initResult.initializedCount, 'items created')
+            // Reload assignments after initialization
+            const initializedData = await getDepartmentAssignments(organizationId, verticalId)
+            setAssignments(initializedData)
+            previousStateRef.current = [...initializedData]
+          } else {
+            // Still no data, use empty
+            setAssignments([])
+            previousStateRef.current = []
+          }
+        }
+      } else {
+        setAssignments(data)
+        previousStateRef.current = [...data]
+      }
+
       setUseFallbackMode(false)
       setMigrationWarning(null)
 
