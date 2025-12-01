@@ -1,9 +1,15 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Settings, FileText, Users, Plus, Lock } from 'lucide-react'
+import { ArrowLeft, Settings, Lock } from 'lucide-react'
 import { useDocuments } from '../../hooks'
 import { useUserManagement } from '../../hooks'
 import { useTerminology } from '../../hooks'
+import { useVertical } from '../../contexts/VerticalContext'
+import { useDepartmentLandingData } from '../../hooks/useDepartmentLandingData'
+import { useStatCardMetrics } from '../../hooks/useStatCardMetrics'
 import DocumentActionsWidget from '../Operations/DocumentActionsWidget'
+import DynamicStatCards from './DynamicStatCards'
+import DynamicFeaturesList from './DynamicFeaturesList'
+import DynamicToolsList from './DynamicToolsList'
 
 const DepartmentPage = () => {
   const { department } = useParams<{ department: string }>()
@@ -11,9 +17,30 @@ const DepartmentPage = () => {
   const { documents } = useDocuments()
   const { isAdmin } = useUserManagement()
   const { term } = useTerminology()
+  const { verticalId } = useVertical()
 
-  // Department configurations
-  const departmentConfig = {
+  const {
+    config: departmentConfig,
+    statCards,
+    features,
+    tools,
+    loading: dataLoading
+  } = useDepartmentLandingData({
+    departmentId: department || '',
+    verticalId,
+    enabled: !!department
+  })
+
+  const {
+    metrics,
+    loading: metricsLoading
+  } = useStatCardMetrics({
+    statCards,
+    departmentId: department || '',
+    enabled: statCards.length > 0
+  })
+
+  const fallbackConfig = {
     'human-resources': {
       title: 'Human Resources',
       description: 'Employee management and HR processes',
@@ -59,7 +86,7 @@ const DepartmentPage = () => {
     'operations': {
       title: 'Operations',
       description: 'Business operations and process management',
-      color: 'purple',
+      color: 'gray',
       icon: '⚙️',
       features: [
         'Workflow design and optimization',
@@ -73,7 +100,7 @@ const DepartmentPage = () => {
     'customer-support': {
       title: 'Customer Support',
       description: 'Customer service and support operations',
-      color: 'indigo',
+      color: 'sky',
       icon: '🎧',
       features: [
         'Ticket and case management',
@@ -87,7 +114,7 @@ const DepartmentPage = () => {
     'member-care': {
       title: 'Member Care',
       description: 'Member services and support',
-      color: 'indigo',
+      color: 'sky',
       icon: '🎧',
       features: [
         'Member records and profiles',
@@ -198,9 +225,17 @@ const DepartmentPage = () => {
     }
   }
 
-  const config = departmentConfig[department as keyof typeof departmentConfig]
-  
-  if (!config) {
+  const config = departmentConfig
+    ? {
+        title: (departmentConfig as any).custom_display_name || departmentConfig.department_id || department || '',
+        description: (departmentConfig as any).section_name || '',
+        color: departmentConfig.color_theme || 'blue',
+        icon: departmentConfig.emoji || '📁',
+        features: []
+      }
+    : fallbackConfig[department as keyof typeof fallbackConfig]
+
+  if (!config && !dataLoading) {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Department Not Found</h2>
@@ -214,11 +249,9 @@ const DepartmentPage = () => {
     )
   }
 
-  // Check if user has access to this department (for demo, we'll show access for all)
-  const hasAccess = true // In real implementation, this would check user permissions
+  const hasAccess = true
 
-  // Filter documents by department
-  const departmentDocuments = documents.filter(doc => 
+  const departmentDocuments = documents.filter(doc =>
     doc.category.toLowerCase().includes(department?.toLowerCase() || '') ||
     doc.tags.some(tag => tag.toLowerCase().includes(department?.toLowerCase() || ''))
   )
@@ -260,9 +293,30 @@ const DepartmentPage = () => {
     )
   }
 
+  if (dataLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex-1">
+            <div className="h-8 bg-gray-300 rounded w-64 mb-2 animate-pulse" />
+            <div className="h-4 bg-gray-300 rounded w-96 animate-pulse" />
+          </div>
+        </div>
+        <DynamicStatCards statCards={[]} metrics={{}} loading={true} />
+      </div>
+    )
+  }
+
+  const useDynamicComponents = statCards.length > 0 || features.length > 0 || tools.length > 0
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
@@ -279,109 +333,113 @@ const DepartmentPage = () => {
             <p className="text-gray-600 mt-1">{config.description}</p>
           </div>
         </div>
-        
+
         {isAdmin && (
-          <button className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+          <button
+            onClick={() => navigate(`/settings/organization-customization?tab=departments`)}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
             <Settings className="h-4 w-4" />
-            <span>Manage Access</span>
+            <span>Customize Department</span>
           </button>
         )}
       </div>
 
-      {/* Department Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
-              <FileText className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Documents</p>
-              <p className="text-2xl font-bold text-gray-900">{departmentDocuments.length}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
-              <Users className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">{term('team', { capitalize: 'title' })} {term('members', { capitalize: 'first' })}</p>
-              <p className="text-2xl font-bold text-gray-900">8</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
-              <Settings className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Projects</p>
-              <p className="text-2xl font-bold text-gray-900">5</p>
-            </div>
-          </div>
-        </div>
+      {useDynamicComponents ? (
+        <>
+          <DynamicStatCards
+            statCards={statCards}
+            metrics={metrics}
+            colorTheme={config.color}
+            loading={metricsLoading}
+          />
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
-              <Plus className="h-6 w-6 text-white" />
+          <DynamicFeaturesList
+            features={features}
+            colorTheme={config.color}
+          />
+
+          <DynamicToolsList tools={tools} />
+        </>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Documents</p>
+                  <p className="text-2xl font-bold text-gray-900">{departmentDocuments.length}</p>
+                </div>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Resources</p>
-              <p className="text-2xl font-bold text-gray-900">12</p>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{term('team', { capitalize: 'title' })} {term('members', { capitalize: 'first' })}</p>
+                  <p className="text-2xl font-bold text-gray-900">8</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
+                  <Settings className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Active Projects</p>
+                  <p className="text-2xl font-bold text-gray-900">5</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className={`bg-${config.color}-500 p-3 rounded-lg`}>
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Resources</p>
+                  <p className="text-2xl font-bold text-gray-900">12</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Department Features */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">{term('department', { capitalize: 'first' })} Features & Capabilities</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {config.features.map((feature, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <div className={`w-2 h-2 bg-${config.color}-500 rounded-full`}></div>
-              <span className="text-sm text-gray-700">{feature}</span>
+          {config.features && config.features.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">{term('department', { capitalize: 'first' })} Features & Capabilities</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {config.features.map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className={`w-2 h-2 bg-${config.color}-500 rounded-full`}></div>
+                    <span className="text-sm text-gray-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
+        </>
+      )}
 
-      {/* Document Management */}
-      <DocumentActionsWidget 
+      <DocumentActionsWidget
         category={department || ''}
         categoryTitle={config.title}
         color={config.color}
       />
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => navigate('/upload')}
-            className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors"
-          >
-            <FileText className="h-5 w-5 text-gray-600" />
-            <span className="text-gray-600 font-medium">Upload Documents</span>
-          </button>
-          
-          <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors">
-            <Users className="h-5 w-5 text-gray-600" />
-            <span className="text-gray-600 font-medium">Manage {term('team', { capitalize: 'first' })}</span>
-          </button>
-          
-          <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors">
-            <Settings className="h-5 w-5 text-gray-600" />
-            <span className="text-gray-600 font-medium">{term('department', { capitalize: 'first' })} Settings</span>
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
