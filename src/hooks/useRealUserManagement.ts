@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/DemoAuthContext'
 import type { UserProfile, Organization, UserInvitation, InviteUserData } from '../types/user'
@@ -14,6 +14,8 @@ export const useUserManagement = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loadingMessage, setLoadingMessage] = useState<string>('Loading your profile...')
+  const isFetchingRef = useRef(false)
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const {
     recoveryState,
@@ -95,21 +97,59 @@ export const useUserManagement = () => {
   // Fetch current user profile
   const fetchUserProfile = async () => {
     if (!user) {
+      console.log('[useRealUserManagement] No user, clearing loading state')
       setLoading(false)
       return
     }
 
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('[useRealUserManagement] Fetch already in progress, skipping')
+      return
+    }
+
+    isFetchingRef.current = true
+    console.log('[useRealUserManagement] Starting profile fetch for user:', user.id, user.email)
+
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+      fetchTimeoutRef.current = null
+    }
+
+    // Set a timeout to prevent infinite loading (30 seconds)
+    fetchTimeoutRef.current = setTimeout(() => {
+      if (isFetchingRef.current) {
+        console.error('[useRealUserManagement] Profile fetch timeout after 30 seconds')
+        setError('Profile loading timed out. Please refresh the page and try again.')
+        setLoading(false)
+        isFetchingRef.current = false
+      }
+    }, 30000)
+
     try {
-      console.log('Fetching user profile for:', user.email)
-      
+      console.log('[useRealUserManagement] Fetching user profile for:', user.email)
+
       const profile = await ensureUserProfile()
+
+      // Clear timeout on success
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+        fetchTimeoutRef.current = null
+      }
+
       if (!profile) {
-        setError('Failed to create or fetch user profile')
+        const errorMsg = recoveryState.lastError?.userMessage || 'Failed to create or fetch user profile. Please try refreshing the page.'
+        console.error('[useRealUserManagement] Profile fetch returned null:', errorMsg)
+        setError(errorMsg)
+        setLoading(false)
+        isFetchingRef.current = false
         return
       }
 
-      console.log('User profile found:', profile)
+      console.log('[useRealUserManagement] User profile found:', profile)
       setUserProfile(profile)
+      setError(null)
 
       // Fetch organization if user has one
       if (profile.organization_id) {
@@ -120,14 +160,26 @@ export const useUserManagement = () => {
           .single()
 
         if (orgError) {
-          console.error('Error fetching organization:', orgError)
+          console.error('[useRealUserManagement] Error fetching organization:', orgError)
         } else {
+          console.log('[useRealUserManagement] Organization found:', orgData)
           setOrganization(orgData)
         }
       }
     } catch (err) {
-      console.error('Error in fetchUserProfile:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch user profile')
+      // Clear timeout on error
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+        fetchTimeoutRef.current = null
+      }
+
+      console.error('[useRealUserManagement] Error in fetchUserProfile:', err)
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch user profile'
+      setError(errorMsg)
+    } finally {
+      setLoading(false)
+      isFetchingRef.current = false
+      console.log('[useRealUserManagement] Profile fetch complete')
     }
   }
 
@@ -390,10 +442,12 @@ export const useUserManagement = () => {
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) {
+        console.log('[useRealUserManagement] useEffect: No user, clearing loading state')
         setLoading(false)
         return
       }
 
+      console.log('[useRealUserManagement] useEffect triggered for user.id:', user.id)
       setLoading(true)
       setError(null)
       setLoadingMessage('Loading your profile...')
@@ -401,14 +455,23 @@ export const useUserManagement = () => {
       try {
         await fetchUserProfile()
       } catch (err) {
-        console.error('Error loading user data:', err)
-      } finally {
+        console.error('[useRealUserManagement] Error loading user data:', err)
         setLoading(false)
       }
     }
 
     loadUserData()
-  }, [user])
+
+    // Cleanup function
+    return () => {
+      console.log('[useRealUserManagement] Cleaning up useEffect')
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+        fetchTimeoutRef.current = null
+      }
+      isFetchingRef.current = false
+    }
+  }, [user?.id]) // Only depend on user.id to prevent infinite loops
 
   // Update loading message based on recovery state
   useEffect(() => {

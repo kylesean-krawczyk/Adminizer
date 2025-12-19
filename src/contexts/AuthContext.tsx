@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
@@ -29,15 +29,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ExtendedUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [organizationId, setOrganizationId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadUserWithProfile = async (session: Session | null) => {
       if (!session?.user) {
+        console.log('[AuthContext] No session, clearing user')
         setUser(null);
+        setOrganizationId(null);
         return;
       }
 
       try {
+        console.log('[AuthContext] Setting basic user for:', session.user.id)
         // First, set the basic user immediately to allow the app to continue
         setUser(session.user);
 
@@ -49,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle();
 
         if (profileError) {
-          console.error('Error loading user profile:', {
+          console.error('[AuthContext] Error loading user profile:', {
             code: profileError.code,
             message: profileError.message,
             details: profileError.details,
@@ -60,16 +64,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // Update user with organization info if available
-        if (profile) {
-          setUser({
-            ...session.user,
-            organizationId: profile.organization_id || null
-          });
+        // Update organizationId state if available (this won't change user object identity)
+        if (profile?.organization_id !== organizationId) {
+          console.log('[AuthContext] Updating organizationId:', profile?.organization_id)
+          setOrganizationId(profile?.organization_id || null);
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Unexpected error loading user profile:', {
+        console.error('[AuthContext] Unexpected error loading user profile:', {
           error: errorMsg,
           userId: session.user.id,
           fullError: error
@@ -88,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.email)
+      console.log('[AuthContext] Auth state change:', event, session?.user?.email)
       setSession(session)
       await loadUserWithProfile(session);
       setLoading(false)
@@ -96,6 +98,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Create stable extended user object with useMemo
+  // This prevents unnecessary re-renders when user object identity changes
+  // but the actual data (id and organizationId) hasn't changed
+  const extendedUser = useMemo<ExtendedUser | null>(() => {
+    if (!user) {
+      console.log('[AuthContext] useMemo: No user')
+      return null;
+    }
+
+    const extended = {
+      ...user,
+      organizationId
+    };
+
+    console.log('[AuthContext] useMemo: Creating extended user with orgId:', organizationId)
+    return extended;
+  }, [user?.id, organizationId]) // Only recreate when id or organizationId changes
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -154,14 +174,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error
   }
 
-  const value = {
-    user,
+  const value = useMemo(() => ({
+    user: extendedUser,
     session,
     loading,
     signIn,
     signUp,
     signOut,
-  }
+  }), [extendedUser, session, loading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

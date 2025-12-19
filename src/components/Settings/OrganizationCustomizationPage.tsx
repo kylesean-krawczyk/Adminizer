@@ -13,10 +13,11 @@ import VersionHistoryPanel from './Customization/VersionHistoryPanel'
 
 const OrganizationCustomizationPage: React.FC = () => {
   const navigate = useNavigate()
-  const { userProfile, organization, loading: userLoading } = useUserManagement()
+  const { userProfile, organization, loading: userLoading, error: userError, refetch } = useUserManagement()
   const { refreshVertical } = useVertical()
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'stats' | 'departments' | 'branding' | 'history'>('dashboard')
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
   console.log('[OrganizationCustomizationPage] Render state:', {
     userProfile: userProfile ? { id: userProfile.id, role: userProfile.role, email: userProfile.email } : null,
@@ -70,14 +71,89 @@ const OrganizationCustomizationPage: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [hasUnsavedChanges])
 
+  // Add timeout detection for loading state
+  React.useEffect(() => {
+    if (userLoading) {
+      console.log('[OrganizationCustomizationPage] User loading started, setting 15s timeout')
+      const timeoutId = setTimeout(() => {
+        console.warn('[OrganizationCustomizationPage] Loading timeout reached after 15 seconds')
+        setLoadingTimeout(true)
+      }, 15000) // 15 second timeout
+
+      return () => {
+        clearTimeout(timeoutId)
+        setLoadingTimeout(false)
+      }
+    } else {
+      setLoadingTimeout(false)
+    }
+  }, [userLoading])
+
   // Show loading state while user data is being fetched
   if (userLoading) {
     console.log('[OrganizationCustomizationPage] Showing user loading state')
     return (
       <div className="max-w-7xl mx-auto p-8">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="ml-4 text-gray-600">Loading user profile...</p>
+          <p className="mt-4 text-gray-600">Loading user profile...</p>
+          {loadingTimeout && (
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-yellow-800 mb-3">
+                    Loading is taking longer than expected. This might indicate a connection issue.
+                  </p>
+                  <button
+                    onClick={() => {
+                      console.log('[OrganizationCustomizationPage] User clicked retry button')
+                      setLoadingTimeout(false)
+                      refetch()
+                    }}
+                    className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                  >
+                    Retry Loading
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if user profile failed to load
+  if (userError) {
+    console.error('[OrganizationCustomizationPage] User profile error:', userError)
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-900 mb-1">Error Loading User Profile</h3>
+              <p className="text-red-700 mb-4">{userError}</p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    console.log('[OrganizationCustomizationPage] User clicked retry after error')
+                    refetch()
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
