@@ -154,6 +154,8 @@ export interface CompleteDepartmentData {
   statCards: StatCard[]
   features: DepartmentFeature[]
   tools: DepartmentTool[]
+  integrations: DepartmentIntegration[]
+  quickActions: QuickAction[]
 }
 
 /**
@@ -237,3 +239,137 @@ export interface DefaultFeatureTemplate {
   description?: string
   displayOrder: number
 }
+
+/**
+ * Department Integration with OAuth support
+ */
+export interface DepartmentIntegration {
+  id: string
+  organization_id: string
+  vertical_id: VerticalId
+  department_id: string
+  name: string
+  description?: string | null
+  icon: string
+  logo_url?: string | null
+  badges: string[]
+  features: string[]
+  oauth_enabled: boolean
+  oauth_provider?: string | null
+  oauth_config: Record<string, any>
+  external_link?: string | null
+  primary_contact_id?: string | null
+  status: 'active' | 'inactive' | 'pending'
+  is_enabled: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+/**
+ * Quick Action button configuration
+ */
+export interface QuickAction {
+  id: string
+  organization_id: string
+  vertical_id: VerticalId
+  department_id: string
+  label: string
+  icon: string
+  action_url: string
+  action_type: 'route' | 'external' | 'modal'
+  requires_oauth: boolean
+  related_integration_id?: string | null
+  button_style: 'primary' | 'secondary' | 'outline' | 'ghost'
+  is_enabled: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+/**
+ * Department Visual Settings
+ */
+export interface DepartmentVisualSettings {
+  id: string
+  organization_id: string
+  vertical_id: VerticalId
+  department_id: string
+  icon: string
+  emoji?: string | null
+  color_theme: string
+  custom_css?: string | null
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+/**
+ * Parameters for saving a department integration
+ */
+export interface SaveIntegrationParams {
+  organizationId: string
+  verticalId: VerticalId
+  departmentId: string
+  name: string
+  description?: string
+  icon?: string
+  logoUrl?: string
+  badges?: string[]
+  features?: string[]
+  oauthEnabled?: boolean
+  oauthProvider?: string
+  oauthConfig?: Record<string, any>
+  externalLink?: string
+  primaryContactId?: string
+  status?: 'active' | 'inactive' | 'pending'
+  displayOrder: number
+  isEnabled?: boolean
+}
+
+/**
+ * Parameters for saving a quick action
+ */
+export interface SaveQuickActionParams {
+  organizationId: string
+  verticalId: VerticalId
+  departmentId: string
+  label: string
+  icon: string
+  actionUrl: string
+  actionType: 'route' | 'external' | 'modal'
+  requiresOauth?: boolean
+  relatedIntegrationId?: string
+  buttonStyle?: 'primary' | 'secondary' | 'outline' | 'ghost'
+  displayOrder: number
+  isEnabled?: boolean
+}
+
+/**
+ * OAuth Configuration
+ */
+export interface OAuthConfig {
+  provider: string
+  clientId?: string
+  scopes?: string[]
+  redirectUri?: string
+  additionalParams?: Record<string, any>
+}
+
+/**
+ * Integration Badge Types
+ */
+export type IntegrationBadge =
+  | 'Popular'
+  | 'OAuth Required'
+  | 'Premium'
+  | 'Beta'
+  | 'New'
+  | 'Recommended'
+  | 'Enterprise'
+  | string

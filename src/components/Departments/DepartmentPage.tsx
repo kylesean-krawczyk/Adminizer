@@ -10,6 +10,8 @@ import DocumentActionsWidget from '../Operations/DocumentActionsWidget'
 import DynamicStatCards from './DynamicStatCards'
 import DynamicFeaturesList from './DynamicFeaturesList'
 import DynamicToolsList from './DynamicToolsList'
+import IntegrationToolsSection from './IntegrationToolsSection'
+import QuickActionsSection from './QuickActionsSection'
 
 const DepartmentPage = () => {
   const { department } = useParams<{ department: string }>()
@@ -19,11 +21,15 @@ const DepartmentPage = () => {
   const { term } = useTerminology()
   const { verticalId } = useVertical()
 
+  console.log('[DepartmentPage] 🚀 Rendering with department ID:', department)
+
   const {
     config: departmentConfig,
     statCards,
     features,
     tools,
+    integrations,
+    quickActions,
     loading: dataLoading
   } = useDepartmentLandingData({
     departmentId: department || '',
@@ -315,6 +321,11 @@ const DepartmentPage = () => {
 
   const useDynamicComponents = statCards.length > 0 || features.length > 0 || tools.length > 0
 
+  // Log data after load
+  if (!dataLoading && !metricsLoading) {
+    console.log('[DepartmentPage] 📊 Data loaded - Stats:', statCards.length, 'Features:', features.length, 'Tools:', tools.length, 'Integrations:', integrations.length, 'Actions:', quickActions.length)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -345,6 +356,12 @@ const DepartmentPage = () => {
         )}
       </div>
 
+      {/* Quick Actions Section */}
+      <QuickActionsSection
+        quickActions={quickActions}
+        loading={dataLoading}
+      />
+
       {useDynamicComponents ? (
         <>
           <DynamicStatCards
@@ -360,6 +377,12 @@ const DepartmentPage = () => {
           />
 
           <DynamicToolsList tools={tools} />
+
+          {/* Integration Tools Section */}
+          <IntegrationToolsSection
+            integrations={integrations}
+            loading={dataLoading}
+          />
         </>
       ) : (
         <>
@@ -432,6 +455,12 @@ const DepartmentPage = () => {
               </div>
             </div>
           )}
+
+          {/* Integration Tools Section */}
+          <IntegrationToolsSection
+            integrations={integrations}
+            loading={dataLoading}
+          />
         </>
       )}
 

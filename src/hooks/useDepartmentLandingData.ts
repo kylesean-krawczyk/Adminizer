@@ -5,7 +5,9 @@ import {
   StatCard,
   DepartmentFeature,
   DepartmentTool,
-  DepartmentConfiguration
+  DepartmentConfiguration,
+  DepartmentIntegration,
+  QuickAction
 } from '../types/departmentLandingPage'
 import { getDepartmentLandingData } from '../services/departmentLandingService'
 
@@ -21,6 +23,8 @@ interface UseDepartmentLandingDataReturn {
   statCards: StatCard[]
   features: DepartmentFeature[]
   tools: DepartmentTool[]
+  integrations: DepartmentIntegration[]
+  quickActions: QuickAction[]
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
@@ -42,6 +46,8 @@ export function useDepartmentLandingData(
   const [statCards, setStatCards] = useState<StatCard[]>([])
   const [features, setFeatures] = useState<DepartmentFeature[]>([])
   const [tools, setTools] = useState<DepartmentTool[]>([])
+  const [integrations, setIntegrations] = useState<DepartmentIntegration[]>([])
+  const [quickActions, setQuickActions] = useState<QuickAction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,7 +66,7 @@ export function useDepartmentLandingData(
     }
 
     try {
-      console.log('[useDepartmentLandingData] Loading data:', {
+      console.log('[useDepartmentLandingData] 🚀 Loading data:', {
         organizationId,
         verticalId,
         departmentId
@@ -75,25 +81,28 @@ export function useDepartmentLandingData(
         departmentId
       )
 
-      console.log('[useDepartmentLandingData] Data loaded:', {
-        hasConfig: !!data.config,
-        statCardsCount: data.statCards.length,
-        featuresCount: data.features.length,
-        toolsCount: data.tools.length
-      })
+      console.log('[useDepartmentLandingData] ✅ Stat cards:', data.statCards.length)
+      console.log('[useDepartmentLandingData] ✅ Features:', data.features.length)
+      console.log('[useDepartmentLandingData] ✅ Tools:', data.tools.length)
+      console.log('[useDepartmentLandingData] 🔌 Integrations:', data.integrations.length)
+      console.log('[useDepartmentLandingData] ⚡ Quick actions:', data.quickActions.length)
 
       setConfig(data.config)
       setStatCards(data.statCards)
       setFeatures(data.features)
       setTools(data.tools)
+      setIntegrations(data.integrations)
+      setQuickActions(data.quickActions)
       setError(null)
     } catch (err) {
-      console.error('[useDepartmentLandingData] Error loading data:', err)
+      console.error('[useDepartmentLandingData] ❌ Error loading data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load department data')
       setConfig(null)
       setStatCards([])
       setFeatures([])
       setTools([])
+      setIntegrations([])
+      setQuickActions([])
     } finally {
       setLoading(false)
     }
@@ -112,6 +121,8 @@ export function useDepartmentLandingData(
     statCards,
     features,
     tools,
+    integrations,
+    quickActions,
     loading,
     error,
     refetch

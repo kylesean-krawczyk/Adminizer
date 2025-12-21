@@ -9,13 +9,17 @@ import {
   SaveStatCardParams,
   SaveDepartmentFeatureParams,
   SaveDepartmentToolParams,
-  ReorderParams
+  ReorderParams,
+  DepartmentIntegration,
+  QuickAction,
+  SaveIntegrationParams,
+  SaveQuickActionParams
 } from '../types/departmentLandingPage'
 import { getDepartmentAssignments } from './departmentAssignmentService'
 
 /**
  * Get complete department landing page data
- * Fetches configuration, stat cards, features, and tools in one call
+ * Fetches configuration, stat cards, features, tools, integrations, and quick actions
  */
 export const getDepartmentLandingData = async (
   organizationId: string,
@@ -23,18 +27,20 @@ export const getDepartmentLandingData = async (
   departmentId: string
 ): Promise<CompleteDepartmentData> => {
   try {
-    console.log('[getDepartmentLandingData] Fetching data:', {
+    console.log('[getDepartmentLandingData] 🚀 Fetching data:', {
       organizationId,
       verticalId,
       departmentId
     })
 
     // Fetch all data in parallel
-    const [assignments, statCards, features, tools] = await Promise.all([
+    const [assignments, statCards, features, tools, integrations, quickActions] = await Promise.all([
       getDepartmentAssignments(organizationId, verticalId),
       getStatCards(organizationId, verticalId, departmentId),
       getDepartmentFeatures(organizationId, verticalId, departmentId),
-      getDepartmentTools(organizationId, verticalId, departmentId)
+      getDepartmentTools(organizationId, verticalId, departmentId),
+      getIntegrations(organizationId, verticalId, departmentId),
+      getQuickActions(organizationId, verticalId, departmentId)
     ])
 
     // Find the specific department configuration
@@ -44,20 +50,24 @@ export const getDepartmentLandingData = async (
       throw new Error(`Department configuration not found: ${departmentId}`)
     }
 
-    console.log('[getDepartmentLandingData] Data fetched successfully:', {
+    console.log('[getDepartmentLandingData] ✅ Data fetched successfully:', {
       statCards: statCards.length,
       features: features.length,
-      tools: tools.length
+      tools: tools.length,
+      integrations: integrations.length,
+      quickActions: quickActions.length
     })
 
     return {
       config: config as DepartmentConfiguration,
       statCards,
       features,
-      tools
+      tools,
+      integrations,
+      quickActions
     }
   } catch (error) {
-    console.error('[getDepartmentLandingData] Error:', error)
+    console.error('[getDepartmentLandingData] ❌ Error:', error)
     throw error
   }
 }
@@ -479,6 +489,299 @@ export const updateDepartmentVisualConfig = async (
     return true
   } catch (error) {
     console.error('[updateDepartmentVisualConfig] Exception:', error)
+    return false
+  }
+}
+
+/**
+ * Get integrations for a department
+ */
+export const getIntegrations = async (
+  organizationId: string,
+  verticalId: VerticalId,
+  departmentId: string
+): Promise<DepartmentIntegration[]> => {
+  try {
+    console.log('[getIntegrations] 🔌 Fetching integrations:', { organizationId, verticalId, departmentId })
+
+    const { data, error } = await supabase
+      .from('department_integrations')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('vertical_id', verticalId)
+      .eq('department_id', departmentId)
+      .eq('is_enabled', true)
+      .order('display_order', { ascending: true })
+
+    if (error) {
+      console.error('[getIntegrations] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[getIntegrations] ✅ Fetched', data?.length || 0, 'integrations')
+    return data || []
+  } catch (error) {
+    console.error('[getIntegrations] ❌ Exception:', error)
+    return []
+  }
+}
+
+/**
+ * Save or update a department integration
+ */
+export const saveIntegration = async (params: SaveIntegrationParams): Promise<DepartmentIntegration> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    console.log('[saveIntegration] 💾 Saving integration:', params.name)
+
+    const integrationData = {
+      organization_id: params.organizationId,
+      vertical_id: params.verticalId,
+      department_id: params.departmentId,
+      name: params.name,
+      description: params.description || null,
+      icon: params.icon || 'Plug',
+      logo_url: params.logoUrl || null,
+      badges: params.badges || [],
+      features: params.features || [],
+      oauth_enabled: params.oauthEnabled ?? false,
+      oauth_provider: params.oauthProvider || null,
+      oauth_config: params.oauthConfig || {},
+      external_link: params.externalLink || null,
+      primary_contact_id: params.primaryContactId || null,
+      status: params.status || 'active',
+      display_order: params.displayOrder,
+      is_enabled: params.isEnabled ?? true,
+      updated_by: user.id,
+      created_by: user.id
+    }
+
+    const { data, error } = await supabase
+      .from('department_integrations')
+      .upsert(integrationData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[saveIntegration] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[saveIntegration] ✅ Integration saved:', data.id)
+    return data
+  } catch (error) {
+    console.error('[saveIntegration] ❌ Exception:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a department integration
+ */
+export const deleteIntegration = async (id: string): Promise<boolean> => {
+  try {
+    console.log('[deleteIntegration] 🗑️ Deleting integration:', id)
+
+    const { error } = await supabase
+      .from('department_integrations')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[deleteIntegration] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[deleteIntegration] ✅ Integration deleted')
+    return true
+  } catch (error) {
+    console.error('[deleteIntegration] ❌ Exception:', error)
+    return false
+  }
+}
+
+/**
+ * Reorder integrations
+ */
+export const reorderIntegrations = async (params: ReorderParams): Promise<boolean> => {
+  try {
+    console.log('[reorderIntegrations] 🔄 Reordering integrations:', params.updates.length)
+
+    const updates = params.updates.map(update =>
+      supabase
+        .from('department_integrations')
+        .update({ display_order: update.display_order })
+        .eq('id', update.id)
+    )
+
+    await Promise.all(updates)
+
+    console.log('[reorderIntegrations] ✅ Integrations reordered')
+    return true
+  } catch (error) {
+    console.error('[reorderIntegrations] ❌ Exception:', error)
+    return false
+  }
+}
+
+/**
+ * Toggle integration status
+ */
+export const toggleIntegrationStatus = async (
+  id: string,
+  status: 'active' | 'inactive' | 'pending'
+): Promise<boolean> => {
+  try {
+    console.log('[toggleIntegrationStatus] 🔄 Updating status:', { id, status })
+
+    const { error } = await supabase
+      .from('department_integrations')
+      .update({ status })
+      .eq('id', id)
+
+    if (error) {
+      console.error('[toggleIntegrationStatus] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[toggleIntegrationStatus] ✅ Status updated')
+    return true
+  } catch (error) {
+    console.error('[toggleIntegrationStatus] ❌ Exception:', error)
+    return false
+  }
+}
+
+/**
+ * Get quick actions for a department
+ */
+export const getQuickActions = async (
+  organizationId: string,
+  verticalId: VerticalId,
+  departmentId: string
+): Promise<QuickAction[]> => {
+  try {
+    console.log('[getQuickActions] ⚡ Fetching quick actions:', { organizationId, verticalId, departmentId })
+
+    const { data, error } = await supabase
+      .from('quick_actions')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('vertical_id', verticalId)
+      .eq('department_id', departmentId)
+      .eq('is_enabled', true)
+      .order('display_order', { ascending: true })
+
+    if (error) {
+      console.error('[getQuickActions] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[getQuickActions] ✅ Fetched', data?.length || 0, 'quick actions')
+    return data || []
+  } catch (error) {
+    console.error('[getQuickActions] ❌ Exception:', error)
+    return []
+  }
+}
+
+/**
+ * Save or update a quick action
+ */
+export const saveQuickAction = async (params: SaveQuickActionParams): Promise<QuickAction> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    console.log('[saveQuickAction] 💾 Saving quick action:', params.label)
+
+    const actionData = {
+      organization_id: params.organizationId,
+      vertical_id: params.verticalId,
+      department_id: params.departmentId,
+      label: params.label,
+      icon: params.icon,
+      action_url: params.actionUrl,
+      action_type: params.actionType,
+      requires_oauth: params.requiresOauth ?? false,
+      related_integration_id: params.relatedIntegrationId || null,
+      button_style: params.buttonStyle || 'primary',
+      display_order: params.displayOrder,
+      is_enabled: params.isEnabled ?? true,
+      updated_by: user.id,
+      created_by: user.id
+    }
+
+    const { data, error } = await supabase
+      .from('quick_actions')
+      .upsert(actionData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[saveQuickAction] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[saveQuickAction] ✅ Quick action saved:', data.id)
+    return data
+  } catch (error) {
+    console.error('[saveQuickAction] ❌ Exception:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a quick action
+ */
+export const deleteQuickAction = async (id: string): Promise<boolean> => {
+  try {
+    console.log('[deleteQuickAction] 🗑️ Deleting quick action:', id)
+
+    const { error } = await supabase
+      .from('quick_actions')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[deleteQuickAction] ❌ Error:', error)
+      throw error
+    }
+
+    console.log('[deleteQuickAction] ✅ Quick action deleted')
+    return true
+  } catch (error) {
+    console.error('[deleteQuickAction] ❌ Exception:', error)
+    return false
+  }
+}
+
+/**
+ * Reorder quick actions
+ */
+export const reorderQuickActions = async (params: ReorderParams): Promise<boolean> => {
+  try {
+    console.log('[reorderQuickActions] 🔄 Reordering quick actions:', params.updates.length)
+
+    const updates = params.updates.map(update =>
+      supabase
+        .from('quick_actions')
+        .update({ display_order: update.display_order })
+        .eq('id', update.id)
+    )
+
+    await Promise.all(updates)
+
+    console.log('[reorderQuickActions] ✅ Quick actions reordered')
+    return true
+  } catch (error) {
+    console.error('[reorderQuickActions] ❌ Exception:', error)
     return false
   }
 }
