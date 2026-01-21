@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+
+  /* Theme color variables - will be set by ThemeProvider */
+  --color-primary: #4A90E2;
+  --color-secondary: #F5A623;
+  --color-accent: #7B68EE;
+  --color-background: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #4A4A4A;
+  --color-text-secondary: #757575;
+  --color-text-disabled: #BDBDBD;
+  --color-success: #66BB6A;
+  --color-warning: #FFA726;
+  --color-error: #EF5350;
+  --color-info: #42A5F5;
+  --color-borders: #E8E8E8;
+}
+
+/* Smooth color transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Disable transitions on initial load */
+.preload * {
+  transition: none !important;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Department Card Grid Layout */
+.department-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  width: 100%;
+  padding: 2rem 0;
+}
+
+.department-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 250ms ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+}
+
+.department-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  border-color: var(--card-hover-border-color, #3b82f6);
+}
+
+.department-card:focus {
+  outline: 2px solid var(--card-hover-border-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+.department-card:active {
+  transform: translateY(-4px) scale(0.98);
+}
+
+.department-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--card-icon-color, #7B68EE);
+  transition: color 250ms ease;
+}
+
+.department-card:hover .department-card-icon {
+  color: var(--card-hover-icon-color, #4A90E2);
+}
+
+.department-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  transition: color 250ms ease;
+}
+
+.department-card:hover .department-card-title {
+  color: var(--card-hover-title-color, #4A90E2);
+}
+
+.department-card-description {
+  font-size: 14px;
+  color: var(--card-description-color, #6b7280);
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .department-card-grid {
+    gap: 16px;
+    padding: 1.5rem 0;
+  }
+
+  .department-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .department-card-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .department-card {
+    padding: 20px;
+  }
+}
