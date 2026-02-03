@@ -1,0 +1,56 @@
+# Netlify configuration for Adminizer development deployment
+#
+# REQUIRED ENVIRONMENT VARIABLES (Set in Netlify Dashboard):
+# ============================================================
+# Go to: Site settings > Environment variables > Add new variable
+#
+# 1. VITE_SUPABASE_URL
+#    Your Supabase project URL
+#    Example: https://abgtunvbbtlhsjphsvqq.supabase.co
+#    Found at: Supabase Dashboard > Project Settings > API > URL
+#
+# 2. VITE_SUPABASE_ANON_KEY
+#    Your Supabase anonymous/public key
+#    Found at: Supabase Dashboard > Project Settings > API > anon/public key
+#
+# 3. VITE_ANTHROPIC_API_KEY
+#    Your Anthropic Claude API key
+#    Found at: https://console.anthropic.com/settings/keys
+#
+# 4. VITE_DEMO_MODE (optional)
+#    Set to "false" for production, "true" for demo mode
+#    Default: false
+#
+# NOTE: .env files are NOT used by Netlify builds for security reasons.
+# All environment variables MUST be set in the Netlify dashboard.
+
+[build]
+  # Build command - uses development mode with correct database
+  command = "npm run build:development"
+  # Directory to publish
+  publish = "dist"
+  # Environment for build process
+  environment = { NODE_VERSION = "18" }
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = false
+
+[build.processing.images]
+  compress = true
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

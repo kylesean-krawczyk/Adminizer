@@ -1,0 +1,35 @@
+# Environment files - NEVER commit these 
+.env 
+.env.local 
+.env.development 
+.env.production 
+.env.test 
+.env.demo 
+.env*.local 
+ 
+# Dependencies 
+node_modules/ 
+.pnp 
+.pnp.js 
+ 
+# Build outputs 
+dist/ 
+build/ 
+.cache/ 
+ 
+# Testing 
+coverage/ 
+ 
+# OS files 
+.DS_Store 
+Thumbs.db 
+*.swp 
+*.swo 
+ 
+# IDE 
+.vscode/ 
+.idea/ 
+ 
+# Logs 
+*.log 
+npm-debug.log* 
