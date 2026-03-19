@@ -5,8 +5,9 @@ export interface UserProfile {
   id: string
   email: string
   full_name: string | null
-  role: 'master_admin' | 'admin' | 'user'
+  role: 'super_admin' | 'master_admin' | 'admin' | 'user'
   organization_id: string | null
+  is_super_admin: boolean
   is_active: boolean
   active_vertical: 'church' | 'business' | 'estate'
   invited_by: string | null
@@ -42,6 +43,9 @@ export interface InviteUserData {
   email: string
   role: 'admin' | 'user'
   full_name?: string
+  organization_id?: string
+  create_new_organization?: boolean
+  new_organization_name?: string
 }
 
 const demoUserProfile: UserProfile = {
@@ -50,6 +54,7 @@ const demoUserProfile: UserProfile = {
   full_name: 'Demo Administrator',
   role: 'master_admin',
   organization_id: 'demo-org-1',
+  is_super_admin: false,
   is_active: true,
   active_vertical: 'church',
   invited_by: null,
@@ -77,6 +82,7 @@ const demoUsers: UserProfile[] = [
     full_name: 'Demo User 1',
     role: 'user',
     organization_id: 'demo-org-1',
+    is_super_admin: false,
     is_active: true,
     active_vertical: 'church',
     invited_by: 'demo-admin-id',
@@ -91,6 +97,7 @@ const demoUsers: UserProfile[] = [
     full_name: 'Demo User 2',
     role: 'admin',
     organization_id: 'demo-org-1',
+    is_super_admin: false,
     is_active: true,
     active_vertical: 'business',
     invited_by: 'demo-admin-id',
@@ -187,8 +194,9 @@ export const useDemoUserManagement = () => {
     // Demo mode doesn't need recovery reset
   }
 
-  const isAdmin = userProfile?.role === 'master_admin' || userProfile?.role === 'admin'
-  const isMasterAdmin = userProfile?.role === 'master_admin'
+  const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'master_admin' || userProfile?.role === 'admin'
+  const isMasterAdmin = userProfile?.role === 'master_admin' || userProfile?.role === 'super_admin'
+  const isSuperAdmin = userProfile?.is_super_admin === true
 
   return {
     userProfile,
@@ -201,6 +209,7 @@ export const useDemoUserManagement = () => {
     recoveryState,
     isAdmin,
     isMasterAdmin,
+    isSuperAdmin,
     createOrganization,
     inviteUser,
     acceptInvitation,

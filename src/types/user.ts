@@ -2,8 +2,9 @@ export interface UserProfile {
   id: string
   email: string
   full_name: string | null
-  role: 'master_admin' | 'admin' | 'user'
+  role: 'super_admin' | 'master_admin' | 'admin' | 'user'
   organization_id: string | null
+  is_super_admin: boolean
   is_active: boolean
   invited_by: string | null
   invited_at: string | null
@@ -41,4 +42,7 @@ export interface InviteUserData {
   email: string
   role: 'admin' | 'user'
   full_name?: string
+  organization_id?: string
+  create_new_organization?: boolean
+  new_organization_name?: string
 }

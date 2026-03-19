@@ -1,24 +1,64 @@
-import React, { useState } from 'react'
-import { X, Mail, UserPlus, Copy, Check } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Mail, UserPlus, Copy, Check, Building2, Plus } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
 import { useTerminology } from '../../hooks'
+import { supabase } from '../../lib/supabase'
 
 interface InviteUserModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
+interface Organization {
+  id: string
+  name: string
+}
+
 const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) => {
-  const { inviteUser, organization } = useUserManagement()
+  const { inviteUser, organization, isSuperAdmin } = useUserManagement()
   const { term } = useTerminology()
   const [loading, setLoading] = useState(false)
   const [invitationSent, setInvitationSent] = useState<any>(null)
   const [copied, setCopied] = useState(false)
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [loadingOrgs, setLoadingOrgs] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     role: 'user' as 'admin' | 'user',
-    full_name: ''
+    full_name: '',
+    organization_id: '',
+    create_new_organization: false,
+    new_organization_name: ''
   })
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      if (!isSuperAdmin || !isOpen) return
+
+      setLoadingOrgs(true)
+      try {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .order('name')
+
+        if (error) throw error
+        setOrganizations(data || [])
+      } catch (error) {
+        console.error('Error fetching organizations:', error)
+      } finally {
+        setLoadingOrgs(false)
+      }
+    }
+
+    fetchOrganizations()
+  }, [isSuperAdmin, isOpen])
+
+  useEffect(() => {
+    if (isOpen && organization && !isSuperAdmin) {
+      setFormData(prev => ({ ...prev, organization_id: organization.id }))
+    }
+  }, [isOpen, organization, isSuperAdmin])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,7 +67,14 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
     try {
       const invitation = await inviteUser(formData)
       setInvitationSent(invitation)
-      setFormData({ email: '', role: 'user', full_name: '' })
+      setFormData({
+        email: '',
+        role: 'user',
+        full_name: '',
+        organization_id: organization?.id || '',
+        create_new_organization: false,
+        new_organization_name: ''
+      })
     } catch (error) {
       alert('Failed to send invitation: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
@@ -37,7 +84,14 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
 
   const handleClose = () => {
     setInvitationSent(null)
-    setFormData({ email: '', role: 'user', full_name: '' })
+    setFormData({
+      email: '',
+      role: 'user',
+      full_name: '',
+      organization_id: organization?.id || '',
+      create_new_organization: false,
+      new_organization_name: ''
+    })
     setCopied(false)
     onClose()
   }
@@ -179,14 +233,91 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
                   </p>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>{term('organization', { capitalize: 'first' })}:</strong> {organization?.name}
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    The invited {term('user')} will be added to this {term('organization')}.
-                  </p>
-                </div>
+                {isSuperAdmin ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Building2 className="inline h-4 w-4 mr-1" />
+                      Organization Assignment
+                    </label>
+
+                    <div className="space-y-3">
+                      <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="radio"
+                          checked={!formData.create_new_organization}
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            create_new_organization: false,
+                            new_organization_name: ''
+                          }))}
+                          className="mr-3"
+                          disabled={loading}
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Existing Organization</p>
+                          <p className="text-xs text-gray-500">Add user to an existing organization</p>
+                        </div>
+                      </label>
+
+                      {!formData.create_new_organization && (
+                        <select
+                          value={formData.organization_id}
+                          onChange={(e) => setFormData(prev => ({ ...prev, organization_id: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ml-6"
+                          disabled={loading || loadingOrgs}
+                          required={!formData.create_new_organization}
+                        >
+                          <option value="">Select organization...</option>
+                          {organizations.map(org => (
+                            <option key={org.id} value={org.id}>{org.name}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="radio"
+                          checked={formData.create_new_organization}
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            create_new_organization: true,
+                            organization_id: ''
+                          }))}
+                          className="mr-3"
+                          disabled={loading}
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">
+                            <Plus className="inline h-4 w-4 mr-1" />
+                            New Organization
+                          </p>
+                          <p className="text-xs text-gray-500">Create a new organization for this user (they will be the admin)</p>
+                        </div>
+                      </label>
+
+                      {formData.create_new_organization && (
+                        <input
+                          type="text"
+                          value={formData.new_organization_name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, new_organization_name: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ml-6"
+                          placeholder="New organization name"
+                          disabled={loading}
+                          required={formData.create_new_organization}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>{term('organization', { capitalize: 'first' })}:</strong> {organization?.name}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      The invited {term('user')} will be added to this {term('organization')}.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex justify-end space-x-3 pt-4">
                   <button

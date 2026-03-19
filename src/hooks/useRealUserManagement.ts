@@ -224,7 +224,7 @@ export const useUserManagement = () => {
   }
 
   // Create organization (for first-time setup)
-  const createOrganization = async (name: string) => {
+  const createOrganization = async (name: string, makeSuperAdmin: boolean = false) => {
     if (!user) throw new Error('User not authenticated')
 
     try {
@@ -236,37 +236,42 @@ export const useUserManagement = () => {
 
       console.log('Creating organization with profile:', profile)
 
-      // Create organization
+      // Call the atomic database function
+      const { data, error } = await supabase.rpc('create_organization_with_admin', {
+        p_organization_name: name,
+        p_user_id: profile.id,
+        p_make_super_admin: makeSuperAdmin
+      })
+
+      if (error) {
+        console.error('Organization creation error:', error)
+        throw error
+      }
+
+      console.log('Organization created successfully:', data)
+
+      // Fetch the newly created organization
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
-        .insert({ 
-          name, 
-          created_by: profile.id 
-        })
-        .select()
+        .select('*')
+        .eq('id', data.organization_id)
         .single()
 
       if (orgError) {
-        console.error('Organization creation error:', orgError)
+        console.error('Error fetching organization:', orgError)
         throw orgError
       }
 
-      console.log('Organization created:', orgData)
-
-      // Update user profile to be master admin of this organization
-      const { data: updatedProfile, error: updateError } = await supabase
+      // Fetch the updated profile
+      const { data: updatedProfile, error: profileError } = await supabase
         .from('user_profiles')
-        .update({
-          organization_id: orgData.id,
-          role: 'master_admin'
-        })
+        .select('*')
         .eq('id', profile.id)
-        .select()
         .single()
 
-      if (updateError) {
-        console.error('Profile update error:', updateError)
-        throw updateError
+      if (profileError) {
+        console.error('Error fetching updated profile:', profileError)
+        throw profileError
       }
 
       setOrganization(orgData)
@@ -281,29 +286,114 @@ export const useUserManagement = () => {
 
   // Invite user to organization
   const inviteUser = async (inviteData: InviteUserData) => {
-    if (!userProfile?.organization_id) throw new Error('No organization found')
-    if (!['master_admin', 'admin'].includes(userProfile.role)) {
+    if (!userProfile) throw new Error('User profile not found')
+
+    // Determine target organization
+    let targetOrgId: string | undefined
+    let targetOrgName = ''
+
+    // Handle new organization creation for super admins
+    if (inviteData.create_new_organization && inviteData.new_organization_name) {
+      if (!userProfile.is_super_admin) {
+        throw new Error('Only super admins can create new organizations')
+      }
+
+      // Create new organization first
+      const newOrg = await createOrganization(inviteData.new_organization_name, false)
+      targetOrgId = newOrg.id
+      targetOrgName = newOrg.name
+    } else {
+      // Use specified organization (super admin) or current organization (regular admin)
+      if (inviteData.organization_id) {
+        if (!userProfile.is_super_admin && inviteData.organization_id !== userProfile.organization_id) {
+          throw new Error('You can only invite users to your own organization')
+        }
+        targetOrgId = inviteData.organization_id
+      } else {
+        if (!userProfile.organization_id) {
+          throw new Error('No organization found')
+        }
+        targetOrgId = userProfile.organization_id
+      }
+
+      // Fetch organization name
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('name')
+        .eq('id', targetOrgId)
+        .single()
+
+      if (orgError || !orgData) {
+        throw new Error('Organization not found')
+      }
+      targetOrgName = orgData.name
+    }
+
+    // Check permissions
+    if (!userProfile.is_super_admin && !['master_admin', 'admin'].includes(userProfile.role)) {
       throw new Error('Insufficient permissions to invite users')
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_invitations')
-        .insert({
-          email: inviteData.email,
-          role: inviteData.role,
-          organization_id: userProfile.organization_id,
-          invited_by: userProfile.id
-        })
-        .select()
-        .single()
+      // Use the database function for better validation
+      const { data, error } = await supabase.rpc('assign_user_to_organization', {
+        p_user_email: inviteData.email,
+        p_organization_id: targetOrgId,
+        p_role: inviteData.role,
+        p_invited_by_user_id: userProfile.id
+      })
 
       if (error) throw error
 
-      // In a real app, you would send an email here
-      // For now, we'll just return the invitation token
+      console.log('Invitation created:', data)
+
+      // Send email invitation
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+        const emailResponse = await fetch(
+          `${supabaseUrl}/functions/v1/send-invitation-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: inviteData.email,
+              token: data.token,
+              organizationName: targetOrgName,
+              role: inviteData.role,
+              inviterName: userProfile.full_name || userProfile.email,
+              expiresAt: data.expires_at
+            })
+          }
+        )
+
+        if (!emailResponse.ok) {
+          console.warn('Failed to send email, but invitation was created')
+        } else {
+          console.log('Invitation email sent successfully')
+        }
+      } catch (emailError) {
+        console.warn('Email sending failed, but invitation was created:', emailError)
+      }
+
       await fetchInvitations()
-      return data
+
+      // Return invitation data with email status
+      return {
+        id: data.invitation_id,
+        email: data.email,
+        role: data.role,
+        organization_id: data.organization_id,
+        token: data.token,
+        expires_at: data.expires_at,
+        invited_by: userProfile.id,
+        accepted_at: null,
+        created_at: new Date().toISOString()
+      }
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to invite user')
     }
@@ -489,8 +579,9 @@ export const useUserManagement = () => {
     }
   }, [userProfile])
 
-  const isAdmin = userProfile?.role === 'master_admin' || userProfile?.role === 'admin'
-  const isMasterAdmin = userProfile?.role === 'master_admin'
+  const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'master_admin' || userProfile?.role === 'admin'
+  const isMasterAdmin = userProfile?.role === 'master_admin' || userProfile?.role === 'super_admin'
+  const isSuperAdmin = userProfile?.is_super_admin === true
 
   return {
     userProfile,
@@ -503,6 +594,7 @@ export const useUserManagement = () => {
     recoveryState,
     isAdmin,
     isMasterAdmin,
+    isSuperAdmin,
     createOrganization,
     inviteUser,
     acceptInvitation,
