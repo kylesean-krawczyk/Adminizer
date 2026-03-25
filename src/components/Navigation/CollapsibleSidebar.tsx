@@ -27,7 +27,7 @@ const CollapsibleSidebar = () => {
     return saved !== null ? JSON.parse(saved) : true
   })
   
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['departments', 'operations']))
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['departments', 'operations', 'admin']))
   const [isMobileOverlay, setIsMobileOverlay] = useState(false)
 
   // Save state to sessionStorage whenever it changes
