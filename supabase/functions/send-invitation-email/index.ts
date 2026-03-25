@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get the app URL from environment or use default
-    const appUrl = Deno.env.get("APP_URL") || "https://adminizer.netlify.app";
+    const appUrl = Deno.env.get("APP_URL") || "https://admin.redemptionflagstaff.com";
     const invitationUrl = `${appUrl}/invite/${token}`;
 
     // Format expiration date
@@ -153,9 +153,9 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Adminizer <invitations@adminizer.app>",
+        from: "Redemption Flagstaff <noreply@redemptionflagstaff.com>",
         to: [to],
-        subject: `You're invited to join ${organizationName} on Adminizer`,
+        subject: `You're invited to join ${organizationName}`,
         html: emailHtml,
       }),
     });

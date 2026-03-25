@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Mail, UserPlus, Copy, Check, Building2, Plus } from 'lucide-react'
+import { X, Mail, UserPlus, Copy, Check, Building2, Plus, AlertTriangle } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
 import { useTerminology } from '../../hooks'
 import { supabase } from '../../lib/supabase'
@@ -14,11 +14,25 @@ interface Organization {
   name: string
 }
 
+interface InvitationResult {
+  id: string
+  email: string
+  role: string
+  organization_id: string
+  token: string
+  expires_at: string
+  invited_by: string
+  accepted_at: string | null
+  created_at: string
+  emailSent?: boolean
+  emailError?: string | null
+}
+
 const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) => {
   const { inviteUser, organization, isSuperAdmin } = useUserManagement()
   const { term } = useTerminology()
   const [loading, setLoading] = useState(false)
-  const [invitationSent, setInvitationSent] = useState<any>(null)
+  const [invitationSent, setInvitationSent] = useState<InvitationResult | null>(null)
   const [copied, setCopied] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loadingOrgs, setLoadingOrgs] = useState(false)
@@ -141,21 +155,56 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
           <div className="p-6">
             {invitationSent ? (
               <div className="text-center space-y-4">
-                <div className="bg-green-100 rounded-full p-6 mx-auto w-24 h-24 flex items-center justify-center">
-                  <Check className="h-12 w-12 text-green-600" />
+                <div className={`rounded-full p-6 mx-auto w-24 h-24 flex items-center justify-center ${
+                  invitationSent.emailSent
+                    ? 'bg-green-100'
+                    : 'bg-yellow-100'
+                }`}>
+                  {invitationSent.emailSent ? (
+                    <Check className="h-12 w-12 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="h-12 w-12 text-yellow-600" />
+                  )}
                 </div>
-                
+
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Invitation sent successfully!
+                    {invitationSent.emailSent
+                      ? 'Invitation sent successfully!'
+                      : 'Invitation created'}
                   </h3>
-                  <p className="text-gray-600 mb-4">
-                    An invitation has been sent to <strong>{invitationSent.email}</strong>
-                  </p>
+                  {invitationSent.emailSent ? (
+                    <p className="text-gray-600 mb-4">
+                      An invitation email has been sent to <strong>{invitationSent.email}</strong>
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-gray-600">
+                        Invitation created for <strong>{invitationSent.email}</strong>
+                      </p>
+                      {invitationSent.emailError && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                          <p className="text-yellow-800 font-medium mb-1">
+                            Email could not be sent
+                          </p>
+                          <p className="text-yellow-700 text-xs">
+                            {invitationSent.emailError}
+                          </p>
+                          <p className="text-yellow-700 text-xs mt-2">
+                            Please share the invitation link below manually.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-2">Share this invitation link:</p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {invitationSent.emailSent
+                      ? 'Or share this invitation link manually:'
+                      : 'Share this invitation link:'}
+                  </p>
                   <div className="flex items-center space-x-2">
                     <input
                       type="text"
@@ -166,8 +215,8 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
                     <button
                       onClick={copyInviteLink}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        copied 
-                          ? 'bg-green-100 text-green-700' 
+                        copied
+                          ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                       }`}
                     >

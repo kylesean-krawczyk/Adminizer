@@ -348,6 +348,9 @@ export const useUserManagement = () => {
       console.log('Invitation created:', data)
 
       // Send email invitation
+      let emailSent = false
+      let emailError: string | null = null
+
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -371,13 +374,18 @@ export const useUserManagement = () => {
           }
         )
 
+        const emailResponseData = await emailResponse.json()
+
         if (!emailResponse.ok) {
-          console.warn('Failed to send email, but invitation was created')
+          emailError = emailResponseData.error || 'Email service unavailable'
+          console.warn('Failed to send email:', emailError, emailResponseData)
         } else {
-          console.log('Invitation email sent successfully')
+          emailSent = true
+          console.log('Invitation email sent successfully:', emailResponseData)
         }
-      } catch (emailError) {
-        console.warn('Email sending failed, but invitation was created:', emailError)
+      } catch (err) {
+        emailError = err instanceof Error ? err.message : 'Failed to send email'
+        console.warn('Email sending failed:', err)
       }
 
       await fetchInvitations()
@@ -392,7 +400,9 @@ export const useUserManagement = () => {
         expires_at: data.expires_at,
         invited_by: userProfile.id,
         accepted_at: null,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        emailSent,
+        emailError
       }
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to invite user')
