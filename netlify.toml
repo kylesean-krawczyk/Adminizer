@@ -25,8 +25,8 @@
 # All environment variables MUST be set in the Netlify dashboard.
 
 [build]
-  # Build command - uses development mode with correct database
-  command = "npm run build:development"
+  # Build command - uses base .env unless overridden by Netlify env vars
+  command = "npm run build"
   # Directory to publish
   publish = "dist"
   # Environment for build process
