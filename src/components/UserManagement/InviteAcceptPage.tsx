@@ -28,16 +28,7 @@ const InviteAcceptPage = () => {
 
       try {
         const { data, error } = await supabase
-          .from('user_invitations')
-          .select(`
-            *,
-            organization:organizations(name),
-            invited_by_profile:user_profiles!user_invitations_invited_by_fkey(full_name, email)
-          `)
-          .eq('token', token)
-          .is('accepted_at', null)
-          .gt('expires_at', new Date().toISOString())
-          .single()
+          .rpc('get_invitation_by_token', { p_token: token })
 
         if (error) {
           setError('Invalid or expired invitation')

@@ -412,14 +412,9 @@ export const useUserManagement = () => {
   // Accept invitation
   const acceptInvitation = async (token: string, password: string) => {
     try {
-      // Get invitation details
+      // Get invitation details via RPC (bypasses RLS for anonymous access)
       const { data: invitation, error: inviteError } = await supabase
-        .from('user_invitations')
-        .select('*')
-        .eq('token', token)
-        .is('accepted_at', null)
-        .gt('expires_at', new Date().toISOString())
-        .single()
+        .rpc('get_invitation_by_token', { p_token: token })
 
       if (inviteError) throw new Error('Invalid or expired invitation')
 
@@ -432,24 +427,9 @@ export const useUserManagement = () => {
       if (signUpError) throw signUpError
       if (!authData.user) throw new Error('Failed to create user')
 
-      // Update user profile with organization and role
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({
-          organization_id: invitation.organization_id,
-          role: invitation.role,
-          invited_by: invitation.invited_by,
-          invited_at: invitation.created_at
-        })
-        .eq('id', authData.user.id)
-
-      if (updateError) throw updateError
-
-      // Mark invitation as accepted
+      // Accept invitation via RPC (assigns org/role and marks accepted)
       const { error: acceptError } = await supabase
-        .from('user_invitations')
-        .update({ accepted_at: new Date().toISOString() })
-        .eq('id', invitation.id)
+        .rpc('accept_user_invitation', { p_token: token, p_user_id: authData.user.id })
 
       if (acceptError) throw acceptError
 
