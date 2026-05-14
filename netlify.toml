@@ -25,11 +25,8 @@
 # All environment variables MUST be set in the Netlify dashboard.
 
 [build]
-  # Build command - uses base .env unless overridden by Netlify env vars
-  command = "npm run build"
-  # Directory to publish
+  command = "npm run build:production"
   publish = "dist"
-  # Environment for build process
   environment = { NODE_VERSION = "18" }
 
 [build.processing]
