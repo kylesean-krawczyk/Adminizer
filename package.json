@@ -3,7 +3,6 @@
   "private": true,
   "version": "2.1.0",
   "type": "module",
-  "homepage": "https://YOUR_USERNAME.github.io/adminizer-demo",
   "scripts": {
     "dev": "vite",
     "dev:demo": "vite --mode demo",
