@@ -60,7 +60,11 @@ const sendInvitationEmail = async (
   supabaseUrl: string,
   supabaseAnonKey: string
 ) => {
-  const endpoints = [
+  const endpoints: Array<{
+    name: string
+    url: string
+    headers: Record<string, string>
+  }> = [
     {
       name: 'Supabase Edge Function',
       url: `${supabaseUrl}/functions/v1/send-invitation-email`,
