@@ -5,6 +5,36 @@ import type { UserProfile, Organization, UserInvitation, InviteUserData } from '
 import { useProfileRecovery } from './useProfileRecovery'
 import { getRetryMessage } from '../types/profileErrors'
 
+type InvitationCreationResult = {
+  invitation_id: string
+  token: string
+  email: string
+  organization_id: string
+  role: 'admin' | 'user'
+  expires_at: string
+}
+
+const isMissingAssignUserRpcError = (error: any) => {
+  const errorText = [
+    error?.code,
+    error?.message,
+    error?.details,
+    error?.hint
+  ].filter(Boolean).join(' ')
+
+  return (
+    error?.code === 'PGRST202' ||
+    (
+      errorText.includes('assign_user_to_organization') &&
+      (
+        errorText.includes('Could not find') ||
+        errorText.includes('schema cache') ||
+        errorText.includes('function')
+      )
+    )
+  )
+}
+
 export const useUserManagement = () => {
   const { user } = useAuth()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -287,6 +317,68 @@ export const useUserManagement = () => {
   // Invite user to organization
   const inviteUser = async (inviteData: InviteUserData) => {
     if (!userProfile) throw new Error('User profile not found')
+    const normalizedEmail = inviteData.email.trim().toLowerCase()
+
+    const createInvitationDirectly = async (
+      organizationId: string
+    ): Promise<InvitationCreationResult> => {
+      const { data: existingUsers, error: existingUserError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .eq('organization_id', organizationId)
+        .limit(1)
+
+      if (existingUserError) throw existingUserError
+      if (existingUsers && existingUsers.length > 0) {
+        throw new Error('User already exists in this organization')
+      }
+
+      const { data: existingInvitations, error: existingInvitationError } = await supabase
+        .from('user_invitations')
+        .select('id, email, role, organization_id, token, expires_at')
+        .eq('email', normalizedEmail)
+        .eq('organization_id', organizationId)
+        .is('accepted_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (existingInvitationError) throw existingInvitationError
+      if (existingInvitations && existingInvitations.length > 0) {
+        const invitation = existingInvitations[0]
+        return {
+          invitation_id: invitation.id,
+          token: invitation.token,
+          email: invitation.email,
+          organization_id: invitation.organization_id,
+          role: invitation.role,
+          expires_at: invitation.expires_at
+        }
+      }
+
+      const { data: invitation, error: invitationError } = await supabase
+        .from('user_invitations')
+        .insert({
+          email: normalizedEmail,
+          role: inviteData.role,
+          organization_id: organizationId,
+          invited_by: userProfile.id
+        })
+        .select('id, email, role, organization_id, token, expires_at')
+        .single()
+
+      if (invitationError) throw invitationError
+
+      return {
+        invitation_id: invitation.id,
+        token: invitation.token,
+        email: invitation.email,
+        organization_id: invitation.organization_id,
+        role: invitation.role,
+        expires_at: invitation.expires_at
+      }
+    }
 
     // Determine target organization
     let targetOrgId: string | undefined
@@ -336,14 +428,30 @@ export const useUserManagement = () => {
 
     try {
       // Use the database function for better validation
-      const { data, error } = await supabase.rpc('assign_user_to_organization', {
-        p_user_email: inviteData.email,
+      const { data: rpcData, error } = await supabase.rpc('assign_user_to_organization', {
+        p_user_email: normalizedEmail,
         p_organization_id: targetOrgId,
         p_role: inviteData.role,
         p_invited_by_user_id: userProfile.id
       })
 
-      if (error) throw error
+      let data = rpcData as InvitationCreationResult | null
+
+      if (error) {
+        if (!targetOrgId || !isMissingAssignUserRpcError(error)) {
+          throw error
+        }
+
+        console.warn(
+          'assign_user_to_organization RPC is unavailable; falling back to direct invitation insert.',
+          error
+        )
+        data = await createInvitationDirectly(targetOrgId)
+      }
+
+      if (!data) {
+        throw new Error('Invitation could not be created')
+      }
 
       console.log('Invitation created:', data)
 
