@@ -14,6 +14,15 @@ type InvitationCreationResult = {
   expires_at: string
 }
 
+type InvitationEmailPayload = {
+  to: string
+  token: string
+  organizationName: string
+  role: 'admin' | 'user'
+  inviterName: string
+  expiresAt: string
+}
+
 const isMissingAssignUserRpcError = (error: any) => {
   const errorText = [
     error?.code,
@@ -33,6 +42,81 @@ const isMissingAssignUserRpcError = (error: any) => {
       )
     )
   )
+}
+
+const parseEmailResponse = async (response: Response) => {
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    return response.json()
+  }
+
+  const text = await response.text()
+  return text ? { error: text } : {}
+}
+
+const sendInvitationEmail = async (
+  payload: InvitationEmailPayload,
+  supabaseUrl: string,
+  supabaseAnonKey: string
+) => {
+  const endpoints = [
+    {
+      name: 'Supabase Edge Function',
+      url: `${supabaseUrl}/functions/v1/send-invitation-email`,
+      headers: {
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    },
+    {
+      name: 'Netlify Function',
+      url: '/.netlify/functions/send-invitation-email',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  ]
+
+  let lastError = 'Email service unavailable'
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        headers: endpoint.headers,
+        body: JSON.stringify(payload)
+      })
+
+      const responseData = await parseEmailResponse(response)
+
+      if (response.ok) {
+        return {
+          sent: true,
+          data: responseData,
+          endpoint: endpoint.name,
+          error: null
+        }
+      }
+
+      lastError = responseData.error || `${endpoint.name} returned ${response.status}`
+      console.warn(`Failed to send email using ${endpoint.name}:`, lastError, responseData)
+
+      if (response.status !== 404) {
+        break
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : `Failed to call ${endpoint.name}`
+      console.warn(`Email endpoint ${endpoint.name} failed:`, error)
+    }
+  }
+
+  return {
+    sent: false,
+    data: null,
+    endpoint: null,
+    error: lastError
+  }
 }
 
 export const useUserManagement = () => {
@@ -463,33 +547,25 @@ export const useUserManagement = () => {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-        const emailResponse = await fetch(
-          `${supabaseUrl}/functions/v1/send-invitation-email`,
+        const emailResult = await sendInvitationEmail(
           {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              to: inviteData.email,
-              token: data.token,
-              organizationName: targetOrgName,
-              role: inviteData.role,
-              inviterName: userProfile.full_name || userProfile.email,
-              expiresAt: data.expires_at
-            })
-          }
+            to: normalizedEmail,
+            token: data.token,
+            organizationName: targetOrgName,
+            role: inviteData.role,
+            inviterName: userProfile.full_name || userProfile.email,
+            expiresAt: data.expires_at
+          },
+          supabaseUrl,
+          supabaseAnonKey
         )
 
-        const emailResponseData = await emailResponse.json()
-
-        if (!emailResponse.ok) {
-          emailError = emailResponseData.error || 'Email service unavailable'
-          console.warn('Failed to send email:', emailError, emailResponseData)
-        } else {
+        if (emailResult.sent) {
           emailSent = true
-          console.log('Invitation email sent successfully:', emailResponseData)
+          console.log(`Invitation email sent successfully via ${emailResult.endpoint}:`, emailResult.data)
+        } else {
+          emailError = emailResult.error
+          console.warn('Failed to send email:', emailError)
         }
       } catch (err) {
         emailError = err instanceof Error ? err.message : 'Failed to send email'
