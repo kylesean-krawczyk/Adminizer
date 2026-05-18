@@ -23,6 +23,23 @@ type InvitationEmailPayload = {
   expiresAt: string
 }
 
+const REDEMPTION_ORGANIZATION_NAME = 'Redemption Flagstaff'
+const PLACEHOLDER_ORGANIZATION_NAMES = new Set([
+  'primary organization',
+  'church'
+])
+
+const getDisplayOrganizationName = (name: string | null | undefined) => {
+  const trimmedName = (name || '').trim()
+
+  if (!trimmedName) return REDEMPTION_ORGANIZATION_NAME
+  if (PLACEHOLDER_ORGANIZATION_NAMES.has(trimmedName.toLowerCase())) {
+    return REDEMPTION_ORGANIZATION_NAME
+  }
+
+  return trimmedName
+}
+
 const isMissingAssignUserRpcError = (error: any) => {
   const errorText = [
     error?.code,
@@ -497,7 +514,7 @@ export const useUserManagement = () => {
       }
 
       if (organization?.id === targetOrgId && organization.name) {
-        targetOrgName = organization.name
+        targetOrgName = getDisplayOrganizationName(organization.name)
       } else {
         // Fetch organization name
         const { data: orgData, error: orgError } = await supabase
@@ -509,7 +526,7 @@ export const useUserManagement = () => {
         if (orgError || !orgData) {
           throw new Error('Organization not found')
         }
-        targetOrgName = orgData.name
+        targetOrgName = getDisplayOrganizationName(orgData.name)
       }
     }
 
