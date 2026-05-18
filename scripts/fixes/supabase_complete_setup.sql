@@ -922,6 +922,7 @@ BEGIN
   RAISE NOTICE '============================================================================';
 END $$;
 
+-- IMPORTANT: Change the organization name below to match your actual organization
 INSERT INTO organizations (
   id,
   name,
@@ -932,7 +933,7 @@ INSERT INTO organizations (
 )
 VALUES (
   '00000000-0000-0000-0000-000000000001'::uuid,
-  'Primary Organization',
+  'Redemption Church Flagstaff',  -- UPDATE THIS for new deployments
   'church',
   '{church,business,estate}',
   now(),

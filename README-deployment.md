@@ -15,6 +15,7 @@ This project supports running both demo and production versions simultaneously.
 - **Purpose**: Actual application for real users
 - **Build Command**: `npm run build:production`
 - **Environment**: Uses `.env.production` configuration
+- **Netlify**: Uses the checked-in `netlify.toml` production build settings
 
 ## Quick Deployment
 
@@ -33,6 +34,15 @@ npm run build:production
 
 # Upload dist/ folder to kyleseanpm.com
 ```
+
+### For Netlify Production:
+Connect the GitHub repository to Netlify and leave the base directory empty. The
+checked-in `netlify.toml` tells Netlify to run the production Vite build and
+publish `dist`.
+
+If the same repository is also used for a portfolio demo site, configure that
+demo site separately with `npm run build:demo`. Do not set
+`VITE_DEMO_MODE=true` on the production Netlify site.
 
 ## Environment Files
 

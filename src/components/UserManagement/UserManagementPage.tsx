@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, UserPlus, Shield, Mail, CheckCircle, Clock, Key, History, Layout } from 'lucide-react'
+import { Users, UserPlus, Shield, Mail, CheckCircle, Clock, Key, History, LayoutGrid as Layout } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
 import { useTerminology } from '../../hooks'
 import { useRequestNotifications } from '../../hooks/useRequestNotifications'
@@ -134,7 +134,7 @@ const UserManagementPage = () => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'master_admin':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-emerald-100 text-emerald-800'
       case 'admin':
         return 'bg-blue-100 text-blue-800'
       default:

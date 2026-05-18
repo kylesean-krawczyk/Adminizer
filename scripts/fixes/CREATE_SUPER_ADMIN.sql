@@ -59,6 +59,7 @@ BEGIN
   RAISE NOTICE 'STEP 1: Creating Primary Organization...';
   RAISE NOTICE '------------------------------------------------------------';
 
+  -- IMPORTANT: Change the organization name below to match your actual organization
   INSERT INTO organizations (
     id,
     name,
@@ -69,7 +70,7 @@ BEGIN
   )
   VALUES (
     v_org_id,
-    'Primary Organization',
+    'Redemption Church Flagstaff',  -- UPDATE THIS for new deployments
     'church',
     '{church,business,estate}',
     now(),
