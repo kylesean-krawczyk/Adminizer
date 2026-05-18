@@ -76,6 +76,10 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isSuperAdmin && !organization?.id) {
+      alert('Your organization is still loading. Please try again in a moment.')
+      return
+    }
     setLoading(true)
 
     try {
@@ -360,7 +364,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
                 ) : (
                   <div className="bg-blue-50 rounded-lg p-4">
                     <p className="text-sm text-blue-800">
-                      <strong>{term('organization', { capitalize: 'first' })}:</strong> {organization?.name}
+                      <strong>Organization:</strong> {organization?.name || 'Loading organization...'}
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
                       The invited {term('user')} will be added to this {term('organization')}.
@@ -379,7 +383,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
                   </button>
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || (!isSuperAdmin && !organization?.id)}
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                   >
                     <UserPlus className="h-4 w-4" />

@@ -496,17 +496,21 @@ export const useUserManagement = () => {
         targetOrgId = userProfile.organization_id
       }
 
-      // Fetch organization name
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', targetOrgId)
-        .single()
+      if (organization?.id === targetOrgId && organization.name) {
+        targetOrgName = organization.name
+      } else {
+        // Fetch organization name
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', targetOrgId)
+          .single()
 
-      if (orgError || !orgData) {
-        throw new Error('Organization not found')
+        if (orgError || !orgData) {
+          throw new Error('Organization not found')
+        }
+        targetOrgName = orgData.name
       }
-      targetOrgName = orgData.name
     }
 
     // Check permissions
