@@ -5,6 +5,124 @@ import type { UserProfile, Organization, UserInvitation, InviteUserData } from '
 import { useProfileRecovery } from './useProfileRecovery'
 import { getRetryMessage } from '../types/profileErrors'
 
+type InvitationCreationResult = {
+  invitation_id: string
+  token: string
+  email: string
+  organization_id: string
+  role: 'admin' | 'user'
+  expires_at: string
+}
+
+type InvitationEmailPayload = {
+  to: string
+  token: string
+  organizationName: string
+  role: 'admin' | 'user'
+  inviterName: string
+  expiresAt: string
+}
+
+const isMissingAssignUserRpcError = (error: any) => {
+  const errorText = [
+    error?.code,
+    error?.message,
+    error?.details,
+    error?.hint
+  ].filter(Boolean).join(' ')
+
+  return (
+    error?.code === 'PGRST202' ||
+    (
+      errorText.includes('assign_user_to_organization') &&
+      (
+        errorText.includes('Could not find') ||
+        errorText.includes('schema cache') ||
+        errorText.includes('function')
+      )
+    )
+  )
+}
+
+const parseEmailResponse = async (response: Response) => {
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    return response.json()
+  }
+
+  const text = await response.text()
+  return text ? { error: text } : {}
+}
+
+const sendInvitationEmail = async (
+  payload: InvitationEmailPayload,
+  supabaseUrl: string,
+  supabaseAnonKey: string
+) => {
+  const endpoints: Array<{
+    name: string
+    url: string
+    headers: Record<string, string>
+  }> = [
+    {
+      name: 'Supabase Edge Function',
+      url: `${supabaseUrl}/functions/v1/send-invitation-email`,
+      headers: {
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    },
+    {
+      name: 'Netlify Function',
+      url: '/.netlify/functions/send-invitation-email',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  ]
+
+  let lastError = 'Email service unavailable'
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        headers: endpoint.headers,
+        body: JSON.stringify(payload)
+      })
+
+      const responseData = await parseEmailResponse(response)
+
+      if (response.ok) {
+        return {
+          sent: true,
+          data: responseData,
+          endpoint: endpoint.name,
+          error: null
+        }
+      }
+
+      lastError = responseData.error || `${endpoint.name} returned ${response.status}`
+      console.warn(`Failed to send email using ${endpoint.name}:`, lastError, responseData)
+
+      if (response.status !== 404) {
+        break
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : `Failed to call ${endpoint.name}`
+      console.warn(`Email endpoint ${endpoint.name} failed:`, error)
+    }
+  }
+
+  return {
+    sent: false,
+    data: null,
+    endpoint: null,
+    error: lastError
+  }
+}
+
 export const useUserManagement = () => {
   const { user } = useAuth()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -287,6 +405,68 @@ export const useUserManagement = () => {
   // Invite user to organization
   const inviteUser = async (inviteData: InviteUserData) => {
     if (!userProfile) throw new Error('User profile not found')
+    const normalizedEmail = inviteData.email.trim().toLowerCase()
+
+    const createInvitationDirectly = async (
+      organizationId: string
+    ): Promise<InvitationCreationResult> => {
+      const { data: existingUsers, error: existingUserError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .eq('organization_id', organizationId)
+        .limit(1)
+
+      if (existingUserError) throw existingUserError
+      if (existingUsers && existingUsers.length > 0) {
+        throw new Error('User already exists in this organization')
+      }
+
+      const { data: existingInvitations, error: existingInvitationError } = await supabase
+        .from('user_invitations')
+        .select('id, email, role, organization_id, token, expires_at')
+        .eq('email', normalizedEmail)
+        .eq('organization_id', organizationId)
+        .is('accepted_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (existingInvitationError) throw existingInvitationError
+      if (existingInvitations && existingInvitations.length > 0) {
+        const invitation = existingInvitations[0]
+        return {
+          invitation_id: invitation.id,
+          token: invitation.token,
+          email: invitation.email,
+          organization_id: invitation.organization_id,
+          role: invitation.role,
+          expires_at: invitation.expires_at
+        }
+      }
+
+      const { data: invitation, error: invitationError } = await supabase
+        .from('user_invitations')
+        .insert({
+          email: normalizedEmail,
+          role: inviteData.role,
+          organization_id: organizationId,
+          invited_by: userProfile.id
+        })
+        .select('id, email, role, organization_id, token, expires_at')
+        .single()
+
+      if (invitationError) throw invitationError
+
+      return {
+        invitation_id: invitation.id,
+        token: invitation.token,
+        email: invitation.email,
+        organization_id: invitation.organization_id,
+        role: invitation.role,
+        expires_at: invitation.expires_at
+      }
+    }
 
     // Determine target organization
     let targetOrgId: string | undefined
@@ -316,17 +496,21 @@ export const useUserManagement = () => {
         targetOrgId = userProfile.organization_id
       }
 
-      // Fetch organization name
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', targetOrgId)
-        .single()
+      if (organization?.id === targetOrgId && organization.name) {
+        targetOrgName = organization.name
+      } else {
+        // Fetch organization name
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', targetOrgId)
+          .single()
 
-      if (orgError || !orgData) {
-        throw new Error('Organization not found')
+        if (orgError || !orgData) {
+          throw new Error('Organization not found')
+        }
+        targetOrgName = orgData.name
       }
-      targetOrgName = orgData.name
     }
 
     // Check permissions
@@ -336,14 +520,30 @@ export const useUserManagement = () => {
 
     try {
       // Use the database function for better validation
-      const { data, error } = await supabase.rpc('assign_user_to_organization', {
-        p_user_email: inviteData.email,
+      const { data: rpcData, error } = await supabase.rpc('assign_user_to_organization', {
+        p_user_email: normalizedEmail,
         p_organization_id: targetOrgId,
         p_role: inviteData.role,
         p_invited_by_user_id: userProfile.id
       })
 
-      if (error) throw error
+      let data = rpcData as InvitationCreationResult | null
+
+      if (error) {
+        if (!targetOrgId || !isMissingAssignUserRpcError(error)) {
+          throw error
+        }
+
+        console.warn(
+          'assign_user_to_organization RPC is unavailable; falling back to direct invitation insert.',
+          error
+        )
+        data = await createInvitationDirectly(targetOrgId)
+      }
+
+      if (!data) {
+        throw new Error('Invitation could not be created')
+      }
 
       console.log('Invitation created:', data)
 
@@ -355,33 +555,25 @@ export const useUserManagement = () => {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-        const emailResponse = await fetch(
-          `${supabaseUrl}/functions/v1/send-invitation-email`,
+        const emailResult = await sendInvitationEmail(
           {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              to: inviteData.email,
-              token: data.token,
-              organizationName: targetOrgName,
-              role: inviteData.role,
-              inviterName: userProfile.full_name || userProfile.email,
-              expiresAt: data.expires_at
-            })
-          }
+            to: normalizedEmail,
+            token: data.token,
+            organizationName: targetOrgName,
+            role: inviteData.role,
+            inviterName: userProfile.full_name || userProfile.email,
+            expiresAt: data.expires_at
+          },
+          supabaseUrl,
+          supabaseAnonKey
         )
 
-        const emailResponseData = await emailResponse.json()
-
-        if (!emailResponse.ok) {
-          emailError = emailResponseData.error || 'Email service unavailable'
-          console.warn('Failed to send email:', emailError, emailResponseData)
-        } else {
+        if (emailResult.sent) {
           emailSent = true
-          console.log('Invitation email sent successfully:', emailResponseData)
+          console.log(`Invitation email sent successfully via ${emailResult.endpoint}:`, emailResult.data)
+        } else {
+          emailError = emailResult.error
+          console.warn('Failed to send email:', emailError)
         }
       } catch (err) {
         emailError = err instanceof Error ? err.message : 'Failed to send email'
