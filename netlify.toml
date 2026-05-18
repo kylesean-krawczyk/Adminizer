@@ -1,9 +1,10 @@
 [build]
-  command = "npm run build:production"
+  command = "VITE_DEMO_MODE=false npm run build:production"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
+  VITE_DEMO_MODE = "false"
 
 [[redirects]]
   from = "/*"

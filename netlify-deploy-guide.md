@@ -1,6 +1,31 @@
 # Quick Netlify Deployment Guide
 
-## Deploy Adminezer Demo to Netlify
+## Deploy Adminizer Production to Netlify
+
+This repository includes a `netlify.toml` file for the production app. When the
+repo is connected to Netlify, Netlify should use:
+
+- Build command: `VITE_DEMO_MODE=false npm run build:production`
+- Publish directory: `dist`
+- Node.js: `18`
+
+The inline `VITE_DEMO_MODE=false` keeps the production deployment from inheriting
+demo-mode settings from the Netlify UI.
+
+### GitHub Integration (Production)
+
+1. **Push code to GitHub**
+2. **Connect to Netlify:**
+   - "New site from Git"
+   - Connect GitHub repo
+   - Keep the base directory empty unless this repo is nested inside another repo
+   - Netlify will read `netlify.toml` and run the production build
+3. **Environment variables:**
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - Do not set `VITE_DEMO_MODE=true` on the production Netlify site
+
+## Deploy Adminizer Demo to Netlify
 
 ### Method 1: Drag & Drop (Easiest)
 
@@ -30,13 +55,13 @@
    - Add: `adminezer.kyleseanportfolio.com`
    - Update DNS in your domain provider
 
-### Method 3: GitHub Integration (Best for Updates)
+### Method 3: GitHub Integration (Demo Site)
 
 1. **Push code to GitHub**
 2. **Connect to Netlify:**
    - "New site from Git"
    - Connect GitHub repo
-   - Build command: `npm run build:demo`
+   - Override the build command for this separate demo site: `npm run build:demo`
    - Publish directory: `dist`
 
 ## Alternative: Vercel Deployment
