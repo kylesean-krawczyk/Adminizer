@@ -44,6 +44,13 @@ const isMissingAssignUserRpcError = (error: any) => {
   )
 }
 
+const isMissingRpcError = (error: any) =>
+  error?.code === 'PGRST202' ||
+  (
+    typeof error?.message === 'string' &&
+    error.message.toLowerCase().includes('could not find the function')
+  )
+
 const parseEmailResponse = async (response: Response) => {
   const contentType = response.headers.get('content-type') || ''
 
@@ -691,6 +698,32 @@ export const useUserManagement = () => {
     }
   }
 
+  // Delete user from organization by archiving their profile and removing active membership
+  const deleteUser = async (userId: string, deletionReason?: string) => {
+    if (!userProfile || !['master_admin', 'admin'].includes(userProfile.role)) {
+      throw new Error('Insufficient permissions to delete users')
+    }
+
+    try {
+      const { error } = await supabase.rpc('delete_user_from_organization', {
+        p_user_id: userId,
+        p_deletion_reason: deletionReason || null
+      })
+
+      if (error) {
+        throw new Error(
+          isMissingRpcError(error)
+            ? 'User deletion is not configured yet. Please apply the latest Supabase migrations.'
+            : error.message
+        )
+      }
+
+      await fetchUsers()
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to delete user')
+    }
+  }
+
   // Cancel invitation
   const cancelInvitation = async (invitationId: string) => {
     if (!userProfile || !['master_admin', 'admin'].includes(userProfile.role)) {
@@ -783,6 +816,7 @@ export const useUserManagement = () => {
     updateUserRole,
     deactivateUser,
     reactivateUser,
+    deleteUser,
     cancelInvitation,
     createProfileManually: createProfileManuallyFallback,
     resetRecovery,

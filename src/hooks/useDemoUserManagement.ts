@@ -177,6 +177,10 @@ export const useDemoUserManagement = () => {
     ))
   }
 
+  const deleteUser = async (userId: string) => {
+    setUsers(prev => prev.filter(user => user.id !== userId))
+  }
+
   const cancelInvitation = async (invitationId: string) => {
     setInvitations(prev => prev.filter(inv => inv.id !== invitationId))
   }
@@ -216,6 +220,7 @@ export const useDemoUserManagement = () => {
     updateUserRole,
     deactivateUser,
     reactivateUser,
+    deleteUser,
     cancelInvitation,
     createProfileManually,
     resetRecovery,
