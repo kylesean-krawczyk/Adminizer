@@ -4,6 +4,13 @@ import { UserPlus, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
 import { useUserManagement } from '../../hooks'
 import { supabase } from '../../lib/supabase'
 
+const isMissingRpcError = (error: any) =>
+  error?.code === 'PGRST202' ||
+  (
+    typeof error?.message === 'string' &&
+    error.message.toLowerCase().includes('could not find the function')
+  )
+
 const InviteAcceptPage = () => {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
@@ -31,7 +38,11 @@ const InviteAcceptPage = () => {
           .rpc('get_invitation_by_token', { p_token: token })
 
         if (error) {
-          setError('Invalid or expired invitation')
+          setError(
+            isMissingRpcError(error)
+              ? 'Invitation setup is not complete yet. Please contact your administrator.'
+              : 'Invalid or expired invitation'
+          )
         } else {
           setInvitation(data)
         }
