@@ -37,10 +37,3 @@ WHERE lower(email) IN (
   'kyle.sean.krawczyk@gmail.com',
   'kyle@redemptionflagstaff.com'
 );
-
-UPDATE public.organizations
-SET
-  name = 'Redemption Flagstaff',
-  vertical = 'church',
-  updated_at = now()
-WHERE lower(name) IN ('primary organization', 'church');
