@@ -7,6 +7,12 @@
   data is stored in `deleted_user_profiles` for future recovery by an operator.
 */
 
+ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS is_super_admin boolean DEFAULT false;
+
+ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS active_vertical text DEFAULT 'church';
+
 CREATE TABLE IF NOT EXISTS public.deleted_user_profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   deleted_user_id uuid NOT NULL,
