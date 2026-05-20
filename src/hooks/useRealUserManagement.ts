@@ -23,6 +23,23 @@ type InvitationEmailPayload = {
   expiresAt: string
 }
 
+const REDEMPTION_ORGANIZATION_NAME = 'Redemption Flagstaff'
+const PLACEHOLDER_ORGANIZATION_NAMES = new Set([
+  'primary organization',
+  'church'
+])
+
+const getDisplayOrganizationName = (name: string | null | undefined) => {
+  const trimmedName = (name || '').trim()
+
+  if (!trimmedName) return REDEMPTION_ORGANIZATION_NAME
+  if (PLACEHOLDER_ORGANIZATION_NAMES.has(trimmedName.toLowerCase())) {
+    return REDEMPTION_ORGANIZATION_NAME
+  }
+
+  return trimmedName
+}
+
 const isMissingAssignUserRpcError = (error: any) => {
   const errorText = [
     error?.code,
@@ -370,6 +387,9 @@ export const useUserManagement = () => {
 
       if (error) {
         console.error('Organization creation error:', error)
+        if (isMissingRpcError(error)) {
+          throw new Error('Organization setup is not complete yet. Please contact your administrator.')
+        }
         throw error
       }
 
@@ -504,7 +524,7 @@ export const useUserManagement = () => {
       }
 
       if (organization?.id === targetOrgId && organization.name) {
-        targetOrgName = organization.name
+        targetOrgName = getDisplayOrganizationName(organization.name)
       } else {
         // Fetch organization name
         const { data: orgData, error: orgError } = await supabase
@@ -516,7 +536,7 @@ export const useUserManagement = () => {
         if (orgError || !orgData) {
           throw new Error('Organization not found')
         }
-        targetOrgName = orgData.name
+        targetOrgName = getDisplayOrganizationName(orgData.name)
       }
     }
 
@@ -615,7 +635,13 @@ export const useUserManagement = () => {
       const { data: invitation, error: inviteError } = await supabase
         .rpc('get_invitation_by_token', { p_token: token })
 
-      if (inviteError) throw new Error('Invalid or expired invitation')
+      if (inviteError) {
+        throw new Error(
+          isMissingRpcError(inviteError)
+            ? 'Invitation setup is not complete yet. Please contact your administrator.'
+            : 'Invalid or expired invitation'
+        )
+      }
 
       // Sign up the user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -630,7 +656,13 @@ export const useUserManagement = () => {
       const { error: acceptError } = await supabase
         .rpc('accept_user_invitation', { p_token: token, p_user_id: authData.user.id })
 
-      if (acceptError) throw acceptError
+      if (acceptError) {
+        throw new Error(
+          isMissingRpcError(acceptError)
+            ? 'Invitation acceptance is not configured yet. Please contact your administrator.'
+            : acceptError.message
+        )
+      }
 
       return authData
     } catch (err) {

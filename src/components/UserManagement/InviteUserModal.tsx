@@ -28,6 +28,17 @@ interface InvitationResult {
   emailError?: string | null
 }
 
+const getDisplayOrganizationName = (name: string | null | undefined) => {
+  const trimmedName = (name || '').trim()
+
+  if (!trimmedName) return 'Loading organization...'
+  if (['primary organization', 'church'].includes(trimmedName.toLowerCase())) {
+    return 'Redemption Flagstaff'
+  }
+
+  return trimmedName
+}
+
 const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) => {
   const { inviteUser, organization, isSuperAdmin } = useUserManagement()
   const { term } = useTerminology()
@@ -364,7 +375,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose }) =>
                 ) : (
                   <div className="bg-blue-50 rounded-lg p-4">
                     <p className="text-sm text-blue-800">
-                      <strong>Organization:</strong> {organization?.name || 'Loading organization...'}
+                      <strong>Organization:</strong> {getDisplayOrganizationName(organization?.name)}
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
                       The invited {term('user')} will be added to this {term('organization')}.

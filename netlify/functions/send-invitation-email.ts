@@ -32,6 +32,33 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
+const normalizeAppUrl = (value: string | undefined) => {
+  const fallbackUrl = 'https://admin.redemptionflagstaff.com'
+  const trimmed = (value || '').trim()
+
+  if (!trimmed) return fallbackUrl
+
+  const withFixedProtocol = trimmed
+    .replace(/^https\/\//i, 'https://')
+    .replace(/^http\/\//i, 'http://')
+
+  if (/^https?:\/\//i.test(withFixedProtocol)) {
+    return withFixedProtocol.replace(/\/+$/, '')
+  }
+
+  return `https://${withFixedProtocol.replace(/^\/+|\/+$/g, '')}`
+}
+
+const getDisplayOrganizationName = (name: string) => {
+  const trimmedName = name.trim()
+
+  if (['primary organization', 'church'].includes(trimmedName.toLowerCase())) {
+    return 'Redemption Flagstaff'
+  }
+
+  return trimmedName || 'Redemption Flagstaff'
+}
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -74,14 +101,11 @@ export const handler: Handler = async (event) => {
     return jsonResponse(400, { error: 'Missing required fields' })
   }
 
-  const appUrl =
-    process.env.APP_URL ||
-    process.env.URL ||
-    process.env.DEPLOY_PRIME_URL ||
-    'https://admin.redemptionflagstaff.com'
+  const appUrl = normalizeAppUrl(process.env.APP_URL || process.env.URL || process.env.DEPLOY_PRIME_URL)
+  const displayOrganizationName = getDisplayOrganizationName(organizationName)
 
-  const invitationUrl = `${appUrl.replace(/\/$/, '')}/invite/${encodeURIComponent(token)}`
-  const safeOrganizationName = escapeHtml(organizationName)
+  const invitationUrl = `${appUrl}/invite/${encodeURIComponent(token)}`
+  const safeOrganizationName = escapeHtml(displayOrganizationName)
   const safeRole = escapeHtml(role)
   const safeInviterName = inviterName ? escapeHtml(inviterName) : ''
   const safeTo = escapeHtml(to)
@@ -169,7 +193,7 @@ export const handler: Handler = async (event) => {
     body: JSON.stringify({
       from: process.env.INVITATION_FROM_EMAIL || 'Redemption Flagstaff <noreply@redemptionflagstaff.com>',
       to: [to],
-      subject: `You're invited to join ${organizationName}`,
+      subject: `You're invited to join ${displayOrganizationName}`,
       html: emailHtml
     })
   })
