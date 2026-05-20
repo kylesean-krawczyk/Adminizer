@@ -272,7 +272,7 @@ export const useUserManagement = () => {
     try {
       console.log('[useRealUserManagement] Fetching user profile for:', user.email)
 
-      const profile = await ensureUserProfile()
+      let profile = await ensureUserProfile()
 
       // Clear timeout on success
       if (fetchTimeoutRef.current) {
@@ -287,6 +287,32 @@ export const useUserManagement = () => {
         setLoading(false)
         isFetchingRef.current = false
         return
+      }
+
+      if (!profile.organization_id) {
+        try {
+          const { data: repairResult, error: repairError } = await supabase
+            .rpc('repair_current_user_invitation_membership')
+
+          if (repairError) {
+            console.warn('[useRealUserManagement] Invitation membership repair failed:', repairError)
+          } else if (repairResult?.repaired) {
+            console.log('[useRealUserManagement] Invitation membership repaired:', repairResult)
+            const { data: repairedProfile, error: repairedProfileError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single()
+
+            if (repairedProfileError) {
+              console.warn('[useRealUserManagement] Failed to refetch repaired profile:', repairedProfileError)
+            } else if (repairedProfile) {
+              profile = repairedProfile
+            }
+          }
+        } catch (repairErr) {
+          console.warn('[useRealUserManagement] Invitation membership repair unavailable:', repairErr)
+        }
       }
 
       console.log('[useRealUserManagement] User profile found:', profile)
