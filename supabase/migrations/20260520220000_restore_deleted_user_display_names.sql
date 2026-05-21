@@ -244,29 +244,39 @@ $$;
 REVOKE ALL ON FUNCTION public.repair_current_user_invitation_membership() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.repair_current_user_invitation_membership() TO authenticated;
 
+WITH restored_names AS (
+  SELECT
+    up.id,
+    COALESCE(
+      (
+        SELECT
+          CASE
+            WHEN archived_name IS NULL OR lower(archived_name) = 'deleted user' THEN NULL
+            ELSE archived_name
+          END
+        FROM (
+          SELECT NULLIF(btrim(du.profile_snapshot->>'full_name'), '') AS archived_name
+          FROM public.deleted_user_profiles du
+          WHERE du.deleted_user_id = up.id
+          ORDER BY du.deleted_at DESC
+          LIMIT 1
+        ) archived
+      ),
+      NULLIF(btrim(au.raw_user_meta_data->>'full_name'), ''),
+      au.email,
+      up.email
+    ) AS restored_full_name
+  FROM public.user_profiles up
+  JOIN auth.users au ON au.id = up.id
+  WHERE up.organization_id IS NOT NULL
+    AND up.is_active = true
+    AND lower(COALESCE(up.full_name, '')) = 'deleted user'
+)
 UPDATE public.user_profiles up
 SET
-  full_name = COALESCE(
-    CASE
-      WHEN archived.archived_full_name IS NULL OR lower(archived.archived_full_name) = 'deleted user' THEN NULL
-      ELSE archived.archived_full_name
-    END,
-    NULLIF(btrim(au.raw_user_meta_data->>'full_name'), ''),
-    au.email,
-    up.email
-  ),
+  full_name = restored_names.restored_full_name,
   updated_at = now()
-FROM auth.users au
-LEFT JOIN LATERAL (
-  SELECT NULLIF(btrim(du.profile_snapshot->>'full_name'), '') AS archived_full_name
-  FROM public.deleted_user_profiles du
-  WHERE du.deleted_user_id = up.id
-  ORDER BY du.deleted_at DESC
-  LIMIT 1
-) archived ON true
-WHERE up.id = au.id
-  AND up.organization_id IS NOT NULL
-  AND up.is_active = true
-  AND lower(COALESCE(up.full_name, '')) = 'deleted user';
+FROM restored_names
+WHERE up.id = restored_names.id;
 
 NOTIFY pgrst, 'reload schema';
