@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { VerticalConfig, VerticalId, getVerticalConfig, initializeVerticalConfigs } from '../config'
 import { supabase } from '../lib/supabase'
 import { isDemoMode } from '../lib/demo'
@@ -33,6 +33,8 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
   const [error, setError] = useState<string | null>(null)
   const [customizationLoaded, setCustomizationLoaded] = useState(false)
   const [organizationId, setOrganizationId] = useState<string | undefined>(undefined)
+  // User whose configuration is currently loaded (null = signed out, undefined = not loaded yet)
+  const loadedUserIdRef = useRef<string | null | undefined>(undefined)
 
   // Use department structure hook for database-driven department assignments
   const {
@@ -193,6 +195,7 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       }
 
       const { data: { user } } = await supabase.auth.getUser()
+      loadedUserIdRef.current = user?.id ?? null
 
       if (!user) {
         const defaultVertical = (import.meta.env.VITE_DEFAULT_VERTICAL as VerticalId) || 'church'
@@ -301,6 +304,31 @@ export const VerticalProvider: React.FC<VerticalProviderProps> = ({ children }) 
       setError('Configuration validation failed')
     }
     loadVerticalFromOrganization()
+  }, [])
+
+  // This provider sits outside AuthProvider and only loads on mount, so a user who
+  // signs in through the login form (no page reload) would otherwise keep the
+  // logged-out defaults. Reload whenever the signed-in user actually changes.
+  useEffect(() => {
+    if (isDemoMode) return
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') return
+
+      const nextUserId = session?.user?.id ?? null
+      // SIGNED_IN also fires on tab refocus/session recovery for the same user; skip those.
+      if (nextUserId === loadedUserIdRef.current) return
+      loadedUserIdRef.current = nextUserId
+
+      // Drop the previous user's organization so their departments never show for the next user.
+      setOrganizationId(undefined)
+      // Defer: awaiting Supabase calls inside this callback can deadlock the auth client.
+      setTimeout(() => {
+        loadVerticalFromOrganization()
+      }, 0)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   // Listen for department structure changes from UI Customization
