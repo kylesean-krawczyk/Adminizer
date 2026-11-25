@@ -14,7 +14,7 @@ const isMissingRpcError = (error: any) =>
 const InviteAcceptPage = () => {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
-  const { acceptInvitation } = useUserManagement()
+  const { acceptInvitation, userProfile } = useUserManagement()
   
   const [invitation, setInvitation] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -56,6 +56,12 @@ const InviteAcceptPage = () => {
     fetchInvitation()
   }, [token])
 
+  useEffect(() => {
+    if (error && userProfile) {
+      navigate('/', { replace: true })
+    }
+  }, [error, userProfile, navigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -74,7 +80,7 @@ const InviteAcceptPage = () => {
 
     try {
       await acceptInvitation(token!, password)
-      navigate('/')
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation')
     } finally {
